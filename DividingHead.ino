@@ -44,13 +44,17 @@ void setup()
   Screen.setup();
 
   DBGLN(F("Add splash screen...")); 
-  Screen.addScreen(SplashScreen::create()); // добавляем стартовый экран
+  Screen.addScreen(SplashScreen::create()); // добавляем экран заставки
   DBGLN(F("Splash screen added.")); 
 
   
   DBGLN(F("Add main screen...")); 
   Screen.addScreen(MainScreen::create()); // добавляем стартовый экран
   DBGLN(F("Main screen added.")); 
+
+  DBGLN(F("Add rotation screen...")); 
+  Screen.addScreen(RotationScreen::create()); // добавляем экран вращения
+  DBGLN(F("Rotation screen added.")); 
 
     // переключаемся на экран заставки
   Screen.switchToScreen(Splash);

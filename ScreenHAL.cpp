@@ -95,8 +95,16 @@ void HalDC::setup()
 
   // добавляем экран мессадж-бокса
   addScreen(MessageBoxScreen::create());
-  
+
+  Events.subscribe(this);
    
+}
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+void HalDC::onEvent(Event event, void* param)
+{
+  AbstractHALScreen* a = getActiveScreen();
+  if(a)
+    a->onEvent(event,param);
 }
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 void HalDC::update()
@@ -112,9 +120,6 @@ void HalDC::update()
     
     screen->setActive(true);
     screen->onActivate();
-
-    //Тут очистка экрана
-   clearScreen();
 
     screen->update(this);
     screen->draw(this);

@@ -18,7 +18,7 @@
 #define BUTTON_Y_OFFSET 10
 #define BUTTON_COLORS VGA_BLACK, VGA_GRAY,VGA_SILVER,VGA_GRAY,VGA_WHITE
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-class MainScreen : public AbstractHALScreen, public IEventSubscriber
+class MainScreen : public AbstractHALScreen
 {
   public:
 
@@ -45,7 +45,7 @@ private:
 
 
     UTFT_Buttons_Rus* buttons;
-    void drawGUI();
+    void drawGUI(HalDC* hal);
 
     Vector<uint8_t> buttonList;
 
@@ -84,5 +84,40 @@ private:
 };
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 extern SplashScreen* Splash;
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+class RotationScreen : public AbstractHALScreen
+{
+  public:
+
+  static AbstractHALScreen* create()
+  {
+    return new RotationScreen();
+  }
+  
+   virtual void onActivate();
+   virtual void onDeactivate();
+
+   virtual void onEvent(Event event, void* param);
+
+
+protected:
+  
+    virtual void doSetup(HalDC* hal);
+    virtual void doUpdate(HalDC* hal);
+    virtual void doDraw(HalDC* hal);
+
+private:
+    RotationScreen();
+    ~RotationScreen();
+
+     uint8_t rotationSpeed;
+     bool wantRedrawRotationSpeed;
+     int lastRotationSpeedLength;
+     void drawGUI(HalDC* hal);
+     int drawRotationSpeed(HalDC* hal, int top);
+  
+};
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+extern RotationScreen* Rotation;
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 

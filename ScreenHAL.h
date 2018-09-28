@@ -34,6 +34,7 @@ class HalDC;
   extern FONT_TYPE Various_Symbols_16x32[];    // какой шрифт используем
   extern FONT_TYPE Various_Symbols_32x32[];    // какой шрифт используем
   extern FONT_TYPE SevenSegNumFontMDS[];
+  extern FONT_TYPE SevenSeg_XXXL_Num[];
   
   #define SCREEN_BACK_COLOR VGA_WHITE          // цвет фона
   #define SCREEN_TEXT_COLOR VGA_BLACK          // цвет шрифта

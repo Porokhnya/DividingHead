@@ -3,8 +3,20 @@
 #include "ScreenHAL.h"
 #include "UTFT_Buttons_Rus.h"
 #include "Events.h"
+#include "CoreArray.h"
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 // главный экран
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+#define DIVIDE_DEGREE_BUTTON 0
+#define DIVIDE_PARTS_BUTTON 1
+#define STEP_BUTTON 2
+#define ROTATION_BUTTON 3
+#define SETTINGS_BUTTON 4
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+#define BUTTON_HEIGHT 40
+#define BUTTON_X_OFFSET 10
+#define BUTTON_Y_OFFSET 10
+#define BUTTON_COLORS VGA_BLACK, VGA_GRAY,VGA_SILVER,VGA_GRAY,VGA_WHITE
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 class MainScreen : public AbstractHALScreen, public IEventSubscriber
 {
@@ -35,7 +47,9 @@ private:
     UTFT_Buttons_Rus* buttons;
     void drawGUI();
 
-    int divideDegreeButton, dividePartsButton, jogButton, rotationButton, settingsButton, lastActiveButton;
+    Vector<uint8_t> buttonList;
+
+    int lastActiveButton;
 
   
 };

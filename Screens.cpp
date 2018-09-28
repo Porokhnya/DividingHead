@@ -4,12 +4,24 @@
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 MainScreen* StartScreen = NULL;        
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+void setButtonActive(UTFT_Buttons_Rus* bb, int bID)
+{
+  bb->setButtonBackColor(bID, VGA_BLUE);
+  bb->setButtonFontColor(bID, VGA_WHITE);  
+}
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+void setButtonInactive(UTFT_Buttons_Rus* bb, int bID)
+{
+  bb->setButtonBackColor(bID, VGA_WHITE);
+  bb->setButtonFontColor(bID, VGA_BLACK);  
+}
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 MainScreen::MainScreen() : AbstractHALScreen()
 {
   StartScreen = this;
   buttons = new UTFT_Buttons_Rus(Screen.getUTFT());
   buttons->setTextFont(SCREEN_BIG_FONT);
-  buttons->setButtonColors(VGA_BLACK, VGA_GRAY,VGA_SILVER,VGA_GRAY,VGA_WHITE);
+  buttons->setButtonColors(BUTTON_COLORS);
 
 }
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -34,34 +46,109 @@ void MainScreen::onEvent(Event event, void* param)
 {
   if(!isActive())
     return;  
+
+    switch(event)
+    {
+      case EncoderPositionChanged: // смена позиции энкодера
+      {
+        int changes = *((int*) param);
+        if(changes != 0)
+        {
+          int requested = lastActiveButton;
+          requested += changes;
+          if(requested < 0)
+            requested = buttonList.size()-1;
+
+          if(requested >= buttonList.size())
+            requested = 0;
+
+          setButtonInactive(buttons,lastActiveButton);
+
+          buttons->drawButton(lastActiveButton);
+
+          lastActiveButton = requested;
+          setButtonActive(buttons,lastActiveButton);
+            
+          buttons->drawButton(lastActiveButton);
+        }
+      }
+      break; // EncoderPositionChanged
+
+      case EncoderButtonClicked: // кликнута кнопка энкодера
+      {
+        switch(lastActiveButton)
+        {
+          case DIVIDE_DEGREE_BUTTON:
+          {
+            DBGLN(F("Divide by degrees screen!"));     
+          }
+          break;
+
+          case DIVIDE_PARTS_BUTTON:
+          {
+            DBGLN(F("Divide by parts screen!"));     
+          }
+          break;
+
+          case STEP_BUTTON:
+          {
+            DBGLN(F("Step screen!"));     
+          }
+          break;
+
+          case ROTATION_BUTTON:
+          {
+            DBGLN(F("Rotation screen!"));     
+          }
+          break;
+
+          case SETTINGS_BUTTON:
+          {
+            DBGLN(F("Settings screen!"));     
+          }
+          break;
+
+          
+        } // switch
+        
+      }
+      break; // EncoderButtonClicked
+      
+    } // switch    
 }
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 void MainScreen::doSetup(HalDC* hal)
 {
   int screenWidth = hal->getScreenWidth();
-  int buttonXOffset = 10;
-  int buttonYOffset = 10;
-  int buttonWidth = screenWidth - buttonXOffset*2;
-  int buttonHeight = 40;
+  int buttonWidth = screenWidth - BUTTON_X_OFFSET*2;
 
-  int top = buttonYOffset;
-  divideDegreeButton = buttons->addButton(buttonXOffset,top,buttonWidth,buttonHeight,"ДЕЛЕНИЕ ПО ГРАДУСАМ");
-  lastActiveButton = divideDegreeButton;
+  int top = BUTTON_Y_OFFSET;
+  int btn = buttons->addButton(BUTTON_X_OFFSET,top,buttonWidth,BUTTON_HEIGHT,"ДЕЛЕНИЕ ПО ГРАДУСАМ");
+  lastActiveButton = btn;
 
-  buttons->setButtonBackColor(divideDegreeButton, VGA_BLUE);
-  buttons->setButtonFontColor(divideDegreeButton, VGA_WHITE);  
+  buttonList.push_back(btn);
 
-  top += buttonHeight + buttonYOffset;
-  dividePartsButton = buttons->addButton(buttonXOffset,top,buttonWidth,buttonHeight,"ДЕЛЕНИЕ ПО ЧАСТЯМ");
+  setButtonActive(buttons,lastActiveButton);
 
-  top += buttonHeight + buttonYOffset;
-  jogButton = buttons->addButton(buttonXOffset,top,buttonWidth,buttonHeight,"ШАГАНИЕ");
+  top += BUTTON_HEIGHT + BUTTON_Y_OFFSET;
+  btn = buttons->addButton(BUTTON_X_OFFSET,top,buttonWidth,BUTTON_HEIGHT,"ДЕЛЕНИЕ ПО ЧАСТЯМ");
 
-  top += buttonHeight + buttonYOffset;
-  rotationButton = buttons->addButton(buttonXOffset,top,buttonWidth,buttonHeight,"ВРАЩЕНИЕ");
+  buttonList.push_back(btn);
 
-  top += buttonHeight + buttonYOffset;
-  settingsButton = buttons->addButton(buttonXOffset,top,buttonWidth,buttonHeight,"НАСТРОЙКИ");
+  top += BUTTON_HEIGHT + BUTTON_Y_OFFSET;
+  btn = buttons->addButton(BUTTON_X_OFFSET,top,buttonWidth,BUTTON_HEIGHT,"ШАГАНИЕ");
+
+  buttonList.push_back(btn);
+
+  top += BUTTON_HEIGHT + BUTTON_Y_OFFSET;
+  btn = buttons->addButton(BUTTON_X_OFFSET,top,buttonWidth,BUTTON_HEIGHT,"ВРАЩЕНИЕ");
+
+  buttonList.push_back(btn);
+
+  top += BUTTON_HEIGHT + BUTTON_Y_OFFSET;
+  btn = buttons->addButton(BUTTON_X_OFFSET,top,buttonWidth,BUTTON_HEIGHT,"НАСТРОЙКИ");
+
+  buttonList.push_back(btn);
 
   Events.subscribe(this);
 

@@ -106,6 +106,45 @@ void SettingsClass::setLastSelectedMenu(uint8_t value)
   write8(LAST_SELECTED_MENU_STORE_ADDRESS, value);  
 }
 //--------------------------------------------------------------------------------------------------------------------------------
+uint8_t SettingsClass::getMotorReduction()
+{
+  return read8(REDUCTION_MOTOR_STORE_ADDRESS,REDUCTION_MOTOR);
+}
+//--------------------------------------------------------------------------------------------------------------------------------
+void SettingsClass::setMotorReduction(uint8_t value)
+{
+  write8(REDUCTION_MOTOR_STORE_ADDRESS, value);
+}
+//--------------------------------------------------------------------------------------------------------------------------------
+uint8_t SettingsClass::getGearReduction()
+{
+  return read8(REDUCTION_GEAR_STORE_ADDRESS,REDUCTION_GEAR);
+}
+//--------------------------------------------------------------------------------------------------------------------------------
+void SettingsClass::setGearReduction(uint8_t value)
+{
+  write8(REDUCTION_GEAR_STORE_ADDRESS, value);
+}
+//--------------------------------------------------------------------------------------------------------------------------------
+uint8_t SettingsClass::getDivider()
+{
+  return read8(MICROSTEP_DIVIDER_STORE_ADDRESS,MICROSTEP_DIVIDER);
+}
+//--------------------------------------------------------------------------------------------------------------------------------
+void SettingsClass::setDivider(uint8_t value)
+{
+  write8(MICROSTEP_DIVIDER_STORE_ADDRESS, value);
+}
+//--------------------------------------------------------------------------------------------------------------------------------
+uint16_t SettingsClass::getStepsPerRevolution()
+{
+  return read16(STEPS_PER_REVOLUTION_STORE_ADDRESS,STEPS_PER_REVOLUTION);
+}
+//--------------------------------------------------------------------------------------------------------------------------------
+void SettingsClass::setStepsPerRevolution(uint16_t value)
+{
+  write16(STEPS_PER_REVOLUTION_STORE_ADDRESS, value);
+}
 //--------------------------------------------------------------------------------------------------------------------------------
 //--------------------------------------------------------------------------------------------------------------------------------
 //--------------------------------------------------------------------------------------------------------------------------------

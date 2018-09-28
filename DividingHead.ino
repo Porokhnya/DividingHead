@@ -14,10 +14,11 @@
 #include "ScreenHAL.h"
 #include "Screens.h"
 #include "Memory.h"
+#include "MotorController.h"
 #include <Wire.h>
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 RotaryEncoder encoder(ENCODER_A_PIN,ENCODER_B_PIN,ENCODER_PPC);
-Button encoderButton;
+Button encoderButton, leftButton, rightButton;
 uint32_t screenIdleTimer = 0;
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 void screenAction(AbstractHALScreen* screen)
@@ -39,6 +40,8 @@ void setup()
   
   encoder.begin();
   encoderButton.begin(ENCODER_BUTTON_PIN);
+  leftButton.begin(LEFT_BUTTON_PIN);
+  rightButton.begin(RIGHT_BUTTON_PIN);
 
   DBGLN(F("Init screen..."));
   Screen.setup();
@@ -62,6 +65,10 @@ void setup()
   screenIdleTimer = millis();
   Screen.onAction(screenAction);
 
+  DBGLN(F("Init stepper...")); 
+  MotorController.init();
+  DBGLN(F("Stepper inited."));   
+
 
   DBGLN(F("Inited."));
 }
@@ -84,9 +91,38 @@ void pollEncoder()
   
 }
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+void raiseButtonState(Button& btn, uint8_t btnID)
+{
+  ButtonEventParam p;
+  p.state = 0;
+  p.state |= btn.isPressed() ? BUTTON_PRESSED : 0;
+  p.state |= btn.isClicked() ? BUTTON_CLICKED : 0;
+  p.state |= btn.isDoubleClicked() ? BUTTON_DBLCLICKED : 0;
+  p.state |= btn.isRetention() ? BUTTON_RETENTION : 0;
+
+
+  if(p.state)
+  {
+    p.button = btnID;
+    Events.raise(ButtonStateChanged, &p);
+  }
+  
+}
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+void pollButtons()
+{
+  leftButton.update();
+  rightButton.update();
+
+  raiseButtonState(leftButton, LEFT_BUTTON);
+  raiseButtonState(rightButton, RIGHT_BUTTON);
+}
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 void loop() 
 {
   pollEncoder();
+  pollButtons();
+  
   Screen.update();
 
  // проверяем, какой экран активен. Если активен главный экран - сбрасываем таймер ожидания. Иначе - проверяем, не истекло ли время ничегонеделанья.
@@ -115,6 +151,7 @@ void yield()
   nestedYield = true;
 
   pollEncoder();
+  pollButtons();
 
  nestedYield = false;
   

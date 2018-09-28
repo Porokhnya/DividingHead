@@ -50,6 +50,19 @@ class SettingsClass
     uint8_t getLastSelectedMenu();
     void setLastSelectedMenu(uint8_t value);
 
+    uint8_t getMotorReduction();
+    void setMotorReduction(uint8_t value);
+
+    uint8_t getGearReduction();
+    void setGearReduction(uint8_t value);
+
+    uint8_t getDivider();
+    void setDivider(uint8_t value);
+
+    uint16_t getStepsPerRevolution();
+    void setStepsPerRevolution(uint16_t value);
+    
+
   private:
 
     uint8_t read8(uint16_t address, uint8_t defaultVal);

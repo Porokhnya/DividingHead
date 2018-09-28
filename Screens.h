@@ -110,10 +110,16 @@ private:
     RotationScreen();
     ~RotationScreen();
 
+     bool speedSelected;
      uint8_t rotationSpeed;
-     bool wantRedrawRotationSpeed;
+     bool wantRedrawRotationSpeed, wantRedrawBackButton;
      int lastRotationSpeedLength;
      void drawGUI(HalDC* hal);
+     
+     bool isInWork, ccwButtonPressed, cwButtonPressed;
+     void startRotate(bool ccw);
+     void stopRotate(bool ccw);
+     
      int drawRotationSpeed(HalDC* hal, int top);
   
 };

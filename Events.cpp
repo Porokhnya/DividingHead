@@ -13,6 +13,12 @@ void EventsClass::raise(Event evt, void* param)
   #ifdef _DEBUG
     switch(evt)
     {
+      case StepperWorkDone: // мотор закончил работу
+      {
+        DBGLN(F("Stepper switched to idle mode!"));
+      }
+      break; // StepperWorkDone
+      
       case EncoderPositionChanged: // смена позиции энкодера
       {
         int* changes = (int*) param;
@@ -26,6 +32,44 @@ void EventsClass::raise(Event evt, void* param)
         DBGLN(F("Encoder button clicked!")); 
       }
       break; // EncoderButtonClicked
+
+      case ButtonStateChanged: // изменение состояния кнопки
+      {
+        ButtonEventParam* p = (ButtonEventParam*) param;
+        DBG(F("Button state changed, button #"));
+        DBG(p->button);
+        DBG(F(", state = "));
+        DBGLN(p->state);
+      }
+      break; // ButtonStateChanged
+
+      case RotationRequested: // запросили запустить или остановить вращение шаговика
+      {
+        RotationEventParam* p = (RotationEventParam*) param;
+        if(p->start)
+        {
+          DBG(F("Start"));
+        }
+        else
+        {
+          DBG(F("Stop"));
+        }
+
+        DBG(F(" rotation, ccw="));
+        
+        if(p->ccw)
+        {
+          DBG(F("true"));
+        }
+        else
+        {
+          DBG(F("false"));
+        }
+
+        DBG(F(", speed="));
+        DBGLN(p->speed);
+      }
+      break; // RotationRequested
       
     } // switch
   #endif // _DEBUG

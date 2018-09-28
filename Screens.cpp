@@ -5,6 +5,40 @@
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 MainScreen* StartScreen = NULL;        
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+void drawBackButton(HalDC* hal, bool active)
+{
+ int screenWidth = hal->getScreenWidth();
+ int screenHeight = hal->getScreenHeight();
+ int buttonWidth = screenWidth - BUTTON_X_OFFSET*2;
+
+  int top = screenHeight - BUTTON_HEIGHT - BUTTON_Y_OFFSET;
+  int left = BUTTON_X_OFFSET;
+
+  
+  hal->setColor(active ? VGA_BLUE : VGA_WHITE);
+  hal->fillRoundRect(left,top,left + buttonWidth, top + BUTTON_HEIGHT);
+
+  if(!active)
+  {
+    hal->setColor(VGA_SILVER);
+    hal->drawRoundRect(left,top,left + buttonWidth, top + BUTTON_HEIGHT);
+  }
+
+  hal->setFont(SCREEN_BIG_FONT);
+  hal->setColor(active ? VGA_WHITE : VGA_BLACK);
+  hal->setBackColor(active ? VGA_BLUE : VGA_WHITE);
+  
+  int fontWidth = hal->getFontWidth(SCREEN_BIG_FONT);
+  int fontHeight = hal->getFontHeight(SCREEN_BIG_FONT);
+
+  String strToDraw;
+  strToDraw = F("< НАЗАД");
+  
+  int len = hal->print(strToDraw.c_str(),0,0,0,true);
+  hal->print(strToDraw.c_str(),(screenWidth - fontWidth*len)/2,top + (BUTTON_HEIGHT-fontHeight)/2);  
+  
+}
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 void setButtonActive(UTFT_Buttons_Rus* bb, int bID)
 {
   bb->setButtonBackColor(bID, VGA_BLUE);
@@ -292,6 +326,10 @@ RotationScreen::RotationScreen() : AbstractHALScreen()
   Rotation = this;
   wantRedrawRotationSpeed = false;
   lastRotationSpeedLength = 0;
+  isInWork = false;
+  ccwButtonPressed = false;
+  cwButtonPressed = false;
+  speedSelected = true;
 }
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 RotationScreen::~RotationScreen()
@@ -303,6 +341,7 @@ void RotationScreen::onDeactivate()
   // станем неактивными
   Settings.setRotationSpeed(rotationSpeed);
   wantRedrawRotationSpeed = false;
+  wantRedrawBackButton = false;
   
 }
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -310,7 +349,61 @@ void RotationScreen::onActivate()
 {
   // мы активизируемся
   rotationSpeed = Settings.getRotationSpeed();
+  speedSelected = true;
   
+}
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+void RotationScreen::startRotate(bool ccw)
+{
+  if(Settings.getRotationSpeed() != rotationSpeed)
+    Settings.setRotationSpeed(rotationSpeed);
+    
+  isInWork = true;
+
+  RotationEventParam rr;
+  rr.start = true;
+  rr.ccw = ccw;
+  rr.speed = rotationSpeed;
+  
+  #ifdef _DEBUG
+  if(ccw)
+  {
+    DBGLN(F("START ROTATE CCW !"));
+  }
+  else
+  {
+    DBGLN(F("START ROTATE CW !"));
+    
+  }
+  #endif
+
+  Events.raise(RotationRequested, &rr);
+
+}
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+void RotationScreen::stopRotate(bool ccw)
+{
+  isInWork = false;    
+
+  RotationEventParam rr;
+  rr.start = false;
+  rr.ccw = ccw;
+  rr.speed = 0;  
+
+  #ifdef _DEBUG
+  if(ccw)
+  {
+    DBGLN(F("STOP ROTATE CCW !"));
+  }
+  else
+  {
+    DBGLN(F("STOP ROTATE CW !"));
+    
+  }
+  #endif
+
+  Events.raise(RotationRequested, &rr);
+
 }
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 void RotationScreen::onEvent(Event event, void* param)
@@ -326,26 +419,92 @@ void RotationScreen::onEvent(Event event, void* param)
         if(changes != 0)
         {
             Screen.notifyAction(this); // говорим, что мы отработали чего-то, т.е. на экране происходит действия.
-            rotationSpeed += changes;
-            
-            if(rotationSpeed < 1)
-              rotationSpeed = 1;
-            if(rotationSpeed > 100)
-              rotationSpeed = 100;
+            if(speedSelected)
+            {
+              rotationSpeed += changes;
               
-            wantRedrawRotationSpeed = true;
+              if(rotationSpeed < 1)
+                rotationSpeed = 1;
+              if(rotationSpeed > 100)
+                rotationSpeed = 100;
+                
+              wantRedrawRotationSpeed = true;
+            }
+            else
+            {
+              // переключаемся на стартовый экран
+              DBGLN(F("Back to main screen!"));
+              Screen.switchToScreen(StartScreen);              
+            }
         }
       }
       break; // EncoderPositionChanged
 
       case EncoderButtonClicked: // кликнута кнопка энкодера
       {
-        // переключаемся на стартовый экран
-        DBGLN(F("Back to main screen!"));
-        Screen.switchToScreen(StartScreen);
+        speedSelected = !speedSelected;
+        wantRedrawBackButton = true;
+        wantRedrawRotationSpeed = true;
+        
         Screen.notifyAction(this); // говорим, что мы отработали чего-то, т.е. на экране происходит действия.
       }
       break; // EncoderButtonClicked
+
+
+      case ButtonStateChanged: // состояние какой-либо кнопки изменилось
+      {
+        Screen.notifyAction(this); // говорим, что мы отработали чего-то, т.е. на экране происходит действия.
+        ButtonEventParam* p = (ButtonEventParam*) param;
+        
+        switch(p->button)
+        {
+          case LEFT_BUTTON:
+          {
+            if(!cwButtonPressed)
+            {
+                bool isPressedNow = p->state & BUTTON_PRESSED;
+                if(isPressedNow)
+                {
+                 ccwButtonPressed = true;
+                 startRotate(true);
+                }
+                else
+                {              
+                  if(p->state & BUTTON_CLICKED)
+                  {
+                   ccwButtonPressed = false;
+                   stopRotate(true);
+                  }
+                }
+            }
+          }
+          break;
+
+          case RIGHT_BUTTON:
+          {
+            if(!ccwButtonPressed)
+            {
+                bool isPressedNow = p->state & BUTTON_PRESSED;
+                if(isPressedNow)
+                {
+                 cwButtonPressed = true;
+                 startRotate(false);
+                }
+                else
+                {              
+                  if(p->state & BUTTON_CLICKED)
+                  {
+                   cwButtonPressed = false;
+                   stopRotate(false);
+                  }
+                }
+            }
+          }
+          break;
+          
+        } // switch
+      }
+      break; // ButtonStateChanged
       
     } // switch    
 }
@@ -359,11 +518,20 @@ void RotationScreen::doUpdate(HalDC* hal)
   if(!isActive())
     return;
 
+    if(isInWork)
+       Screen.notifyAction(this); // говорим, что мы отработали чего-то, т.е. на экране происходит действия.
+
     if(wantRedrawRotationSpeed)
     {
       wantRedrawRotationSpeed = false;
-      drawRotationSpeed(hal,50);
+      drawRotationSpeed(hal,80);
     } // if
+
+    if(wantRedrawBackButton)
+    {
+      wantRedrawBackButton = false;
+      drawBackButton(hal,!speedSelected);
+    }
 
 }
 
@@ -396,10 +564,29 @@ void RotationScreen::drawGUI(HalDC* hal)
    int left = (screenWidth - fontWidth*len)/2;
    hal->print(strToDraw.c_str(),left,top);
 
+   top =  drawRotationSpeed(hal,80);
+   top += 20;
+
+   hal->setFont(SCREEN_BIG_FONT);
+   fontWidth = hal->getFontWidth(SCREEN_BIG_FONT);
+   fontHeight = hal->getFontHeight(SCREEN_BIG_FONT);
+   hal->setBackColor(SCREEN_BACK_COLOR);
+   hal->setColor(SCREEN_TEXT_COLOR);  
+
+
+   strToDraw = F("Зажатие < и > - работа.");
+   len = hal->print(strToDraw.c_str(),0,0,0,true);
+   left = (screenWidth - fontWidth*len)/2;
+   hal->print(strToDraw.c_str(),left,top);
    top += fontHeight + vSpacing;
-   top += drawRotationSpeed(hal,50);
+
+   strToDraw = F("Отпускание < и > - стоп.");
+   len = hal->print(strToDraw.c_str(),0,0,0,true);
+   left = (screenWidth - fontWidth*len)/2;
+   hal->print(strToDraw.c_str(),left,top);
 
 
+   drawBackButton(hal,!speedSelected);
    
 }
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -418,16 +605,17 @@ int RotationScreen::drawRotationSpeed(HalDC* hal, int top)
 
    if(lastRotationSpeedLength && lastRotationSpeedLength != len)
    {
-    hal->setColor(SCREEN_BACK_COLOR);
+    hal->setColor(speedSelected ? SCREEN_BACK_COLOR : VGA_BLUE);
     hal->fillRect(left - fontWidth, top, left + fontWidth*4,top+fontHeight);
    }
 
    lastRotationSpeedLength = len;
    
-   hal->setColor(VGA_BLUE);
+   hal->setColor(speedSelected? SCREEN_BACK_COLOR : VGA_BLUE);
+   hal->setBackColor(speedSelected? VGA_BLUE : SCREEN_BACK_COLOR);
    hal->print(strToDraw.c_str(),left,top);   
 
-   return fontHeight + 10;
+   return (top + fontHeight + 10);
 }
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------

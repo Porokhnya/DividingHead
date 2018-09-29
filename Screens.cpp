@@ -4,8 +4,6 @@
 #include "Settings.h"
 #include "MotorController.h"
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-MainScreen* StartScreen = NULL;        
-//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 void drawBackButton(HalDC* hal, bool active)
 {
  int screenWidth = hal->getScreenWidth();
@@ -50,7 +48,7 @@ void drawStepperStatus(HalDC* hal,bool active)
   if(active)
   {
     hal->setBackColor(SCREEN_BACK_COLOR);
-    hal->setColor(VGA_BLUE);
+    hal->setColor(VGA_RED);
     hal->print("_",screenWidth-fontWidth-offset,offset);
   }
   else
@@ -73,6 +71,10 @@ void setButtonInactive(UTFT_Buttons_Rus* bb, int bID)
   bb->setButtonBackColor(bID, VGA_WHITE);
   bb->setButtonFontColor(bID, VGA_BLACK);  
 }
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+// MainScreen
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+MainScreen* StartScreen = NULL;        
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 MainScreen::MainScreen() : AbstractHALScreen()
 {
@@ -191,7 +193,8 @@ void MainScreen::onEvent(Event event, void* param)
 
           case SETTINGS_BUTTON:
           {
-            DBGLN(F("Settings screen!"));     
+            DBGLN(F("Switch to settings screen!"));
+            Screen.switchToScreen(Tune); 
           }
           break;
 
@@ -208,6 +211,7 @@ void MainScreen::onEvent(Event event, void* param)
 void MainScreen::doSetup(HalDC* hal)
 {
   int screenWidth = hal->getScreenWidth();
+  int screenHeight = hal->getScreenHeight();
   int buttonWidth = screenWidth - BUTTON_X_OFFSET*2;
 
   int top = BUTTON_Y_OFFSET;
@@ -230,7 +234,11 @@ void MainScreen::doSetup(HalDC* hal)
 
   buttonList.push_back(btn);
 
-  top += BUTTON_HEIGHT + BUTTON_Y_OFFSET;
+
+
+
+
+  top = screenHeight - BUTTON_HEIGHT - BUTTON_Y_OFFSET;
   btn = buttons->addButton(BUTTON_X_OFFSET,top,buttonWidth,BUTTON_HEIGHT,"НАСТРОЙКИ");
 
   buttonList.push_back(btn);
@@ -257,6 +265,195 @@ void MainScreen::drawGUI(HalDC* hal)
 }
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 void MainScreen::doDraw(HalDC* hal)
+{
+   hal->clearScreen();
+
+   // тут отрисовка текущего состояния
+   drawGUI(hal);
+
+   hal->updateDisplay();
+}
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+// TuneScreen
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+TuneScreen* Tune = NULL;
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+TuneScreen::TuneScreen() : AbstractHALScreen()
+{
+  Tune = this;
+  buttons = new UTFT_Buttons_Rus(Screen.getUTFT());
+  buttons->setTextFont(SCREEN_BIG_FONT);
+  buttons->setButtonColors(BUTTON_COLORS);
+  lastActiveButton = 0;
+
+}
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+TuneScreen::~TuneScreen()
+{
+  delete buttons;  
+}
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+void TuneScreen::onDeactivate()
+{
+  // станем неактивными
+  
+}
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+void TuneScreen::onActivate()
+{
+  // мы активизируемся
+}
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+void TuneScreen::onEvent(Event event, void* param)
+{
+  if(!isActive())
+    return;  
+
+    switch(event)
+    {
+      case StepsRequested: // запросили шагать на определённое кол-во шагов
+      {
+        
+      }
+      break; // StepsRequested
+      
+      case StepperWorkDone: // движок остановился
+      {
+        
+      }
+      break; // StepperWorkDone
+
+      case RotationRequested: // запросили вращение
+      {
+        
+      }
+      break; // RotationRequested
+
+      case ButtonStateChanged: // изменилось состояние кнопки
+      {
+        
+      }
+      break; // ButtonStateChanged
+    
+      case EncoderPositionChanged: // смена позиции энкодера
+      {
+        int changes = *((int*) param);
+        if(changes != 0)
+        {
+          int requested = lastActiveButton;
+          requested += changes;
+          if(requested < 0)
+            requested = buttonList.size()-1;
+
+          if(requested >= buttonList.size())
+            requested = 0;
+
+          setButtonInactive(buttons,lastActiveButton);
+
+          buttons->drawButton(lastActiveButton);
+
+          lastActiveButton = requested;
+          setButtonActive(buttons,lastActiveButton);
+            
+          buttons->drawButton(lastActiveButton);
+
+          Screen.notifyAction(this); // говорим, что мы отработали чего-то, т.е. на экране происходит действия.
+        }
+      }
+      break; // EncoderPositionChanged
+
+      case EncoderButtonClicked: // кликнута кнопка энкодера
+      {
+        switch(lastActiveButton)
+        {
+          case MOTOR_SETUP_BUTTON: // настройки двигателя
+          {
+            DBGLN(F("Switch to motor setup screen!")); 
+             Screen.switchToScreen(MotorSetup);    
+          }
+          break;
+
+          case MICROSTEP_MODE_BUTTON: // настройка микрошагания
+          {
+            DBGLN(F("Switch to microstep screen!"));  
+             Screen.switchToScreen(Microstep);        
+          }
+          break;
+
+          case REDUCTION_BUTTON: // настройка редукции
+          {
+            DBGLN(F("Switch to reduction screen!"));
+            Screen.switchToScreen(Reduction);     
+          }
+          break;
+
+          case BACK_FROM_TUNE_BUTTON: // возврат на главный экран
+          {
+            DBGLN(F("Switch to main screen!"));
+            Screen.switchToScreen(StartScreen);     
+          }
+          break;
+
+        } // switch
+
+        Screen.notifyAction(this); // говорим, что мы отработали чего-то, т.е. на экране происходит действия.
+
+      }
+      break; // EncoderButtonClicked
+      
+    } // switch    
+}
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+void TuneScreen::doSetup(HalDC* hal)
+{
+  int screenWidth = hal->getScreenWidth();
+  int screenHeight = hal->getScreenHeight();
+  int buttonWidth = screenWidth - BUTTON_X_OFFSET*2;
+
+  int top = BUTTON_Y_OFFSET;
+  int btn = buttons->addButton(BUTTON_X_OFFSET,top,buttonWidth,BUTTON_HEIGHT,"ДВИГАТЕЛЬ"); // шагов на оборот
+
+  buttonList.push_back(btn);
+
+  top += BUTTON_HEIGHT + BUTTON_Y_OFFSET;
+  btn = buttons->addButton(BUTTON_X_OFFSET,top,buttonWidth,BUTTON_HEIGHT,"ДЕЛИТЕЛЬ ШАГА"); // делитель режима шага
+
+  buttonList.push_back(btn);
+
+  top += BUTTON_HEIGHT + BUTTON_Y_OFFSET;
+  btn = buttons->addButton(BUTTON_X_OFFSET,top,buttonWidth,BUTTON_HEIGHT,"ПЕРЕДАТОЧНОЕ ЧИСЛО"); // настройки редукции
+
+  buttonList.push_back(btn);
+
+
+
+
+  top = screenHeight - BUTTON_HEIGHT - BUTTON_Y_OFFSET;
+  btn = buttons->addButton(BUTTON_X_OFFSET,top,buttonWidth,BUTTON_HEIGHT,"< НАЗАД");
+
+  buttonList.push_back(btn);
+
+  setButtonActive(buttons,0);
+
+}
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+void TuneScreen::doUpdate(HalDC* hal)
+{
+  if(!isActive())
+    return;
+
+}
+
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+void TuneScreen::drawGUI(HalDC* hal)
+{
+  if(!isActive())
+  return;
+  
+  buttons->drawButtons();
+}
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+void TuneScreen::doDraw(HalDC* hal)
 {
    hal->clearScreen();
 
@@ -400,6 +597,12 @@ void RotationScreen::onActivate()
   // мы активизируемся
   rotationSpeed = Settings.getRotationSpeed();
   speedSelected = true;
+  bool w = !MotorController.isOnIdle();
+  if(w != isInWork)
+  {
+    isInWork = w;
+    wantDrawStepperStatus = true;
+  }
   
 }
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -427,7 +630,7 @@ void RotationScreen::startRotate(bool ccw)
   }
   #endif
 
-  Events.raise(RotationRequested, &rr);
+  Events.raise(this,RotationRequested, &rr);
   wantDrawStepperStatus = true;
 
 }
@@ -453,7 +656,7 @@ void RotationScreen::stopRotate(bool ccw)
   }
   #endif
 
-  Events.raise(RotationRequested, &rr);
+  Events.raise(this,RotationRequested, &rr);
   wantDrawStepperStatus = true;
 
 }
@@ -695,6 +898,441 @@ int RotationScreen::drawRotationSpeed(HalDC* hal, int top)
    return (top + fontHeight + 10);
 }
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+// MotorSetupScreen
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+MotorSetupScreen* MotorSetup = NULL;        
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+MotorSetupScreen::MotorSetupScreen() : AbstractHALScreen()
+{
+  MotorSetup = this;
+  wantRedrawStepsPerRevolution = false;
+  lastStepsPerRevolutionLength = 0;
+
+}
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+MotorSetupScreen::~MotorSetupScreen()
+{
+}
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+void MotorSetupScreen::onDeactivate()
+{
+  // станем неактивными
+  Settings.setStepsPerRevolution(stepsPerRevolution);
+  wantRedrawStepsPerRevolution = false;
+  
+}
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+void MotorSetupScreen::onActivate()
+{
+  // мы активизируемся
+  stepsPerRevolution = Settings.getStepsPerRevolution();  
+}
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+void MotorSetupScreen::onEvent(Event event, void* param)
+{
+  if(!isActive())
+    return;  
+
+    switch(event)
+    {
+      case StepsRequested: // запросили шагать на определённое кол-во шагов
+      {
+        
+      }
+      break; // StepsRequested
+      
+      case StepperWorkDone: // движок остановился
+      {
+        
+      }
+      break; // StepperWorkDone
+
+      case RotationRequested: // запросили вращение
+      {
+        
+      }
+      break; // RotationRequested
+            
+      case EncoderPositionChanged: // смена позиции энкодера
+      {
+        int changes = *((int*) param);
+        if(changes != 0)
+        {
+              Screen.notifyAction(this); // говорим, что мы отработали чего-то, т.е. на экране происходит действия.
+              stepsPerRevolution += changes;
+              
+              if(stepsPerRevolution < 1)
+                stepsPerRevolution = 1;
+                
+              if(stepsPerRevolution > 10000)
+                stepsPerRevolution = 100;
+                
+              wantRedrawStepsPerRevolution = true;
+        }
+      }
+      break; // EncoderPositionChanged
+
+      case EncoderButtonClicked: // кликнута кнопка энкодера
+      {
+        Screen.notifyAction(this); // говорим, что мы отработали чего-то, т.е. на экране происходит действия.
+
+        // переключаемся на экран настроек
+        DBGLN(F("Back to settings screen!"));
+        Screen.switchToScreen(Tune);              
+        
+      }
+      break; // EncoderButtonClicked
+
+
+      case ButtonStateChanged: // состояние какой-либо кнопки изменилось
+      {        
+      }
+      break; // ButtonStateChanged
+      
+    } // switch    
+}
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+void MotorSetupScreen::doSetup(HalDC* hal)
+{
+}
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+void MotorSetupScreen::doUpdate(HalDC* hal)
+{
+  if(!isActive())
+    return;
+
+    if(wantRedrawStepsPerRevolution)
+    {
+      wantRedrawStepsPerRevolution = false;
+      drawStepsPerRevolution(hal,80);
+    } // if
+
+}
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+void MotorSetupScreen::doDraw(HalDC* hal)
+{
+   hal->clearScreen();
+
+   // тут отрисовка текущего состояния
+   drawGUI(hal);
+
+   hal->updateDisplay();
+}
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+void MotorSetupScreen::drawGUI(HalDC* hal)
+{
+  int screenWidth = hal->getScreenWidth();
+   
+   hal->setFont(SCREEN_BIG_FONT);
+   int fontWidth = hal->getFontWidth(SCREEN_BIG_FONT);
+   hal->setBackColor(SCREEN_BACK_COLOR);
+   hal->setColor(SCREEN_TEXT_COLOR);  
+
+  int top = 20;
+   
+   String strToDraw = F("ШАГОВ НА ОБОРОТ");
+   int len = hal->print(strToDraw.c_str(),0,0,0,true);
+   int left = (screenWidth - fontWidth*len)/2;
+   hal->print(strToDraw.c_str(),left,top);
+
+   top =  drawStepsPerRevolution(hal,80);
+
+   drawBackButton(hal,true);
+   
+}
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+int MotorSetupScreen::drawStepsPerRevolution(HalDC* hal, int top)
+{
+   int screenWidth = hal->getScreenWidth();
+   hal->setFont(SevenSeg_XXXL_Num);
+   int fontWidth = hal->getFontWidth(SevenSeg_XXXL_Num);
+   int fontHeight = hal->getFontHeight(SevenSeg_XXXL_Num);
+
+    
+   String strToDraw;
+   strToDraw = stepsPerRevolution;
+   int len = hal->print(strToDraw.c_str(),0,0,0,true);
+   int left = (screenWidth - fontWidth*len)/2;
+
+   if(lastStepsPerRevolutionLength && lastStepsPerRevolutionLength != len)
+   {
+    if(len < lastStepsPerRevolutionLength)
+    {
+      // разрядность уменьшилась, надо пересчитать, какие прямоугольники заливать, поскольку мы рисуем по центру
+      int diff = lastStepsPerRevolutionLength - len;
+      int freeWidth = diff*fontWidth;
+      
+      hal->setColor(SCREEN_BACK_COLOR);
+      hal->fillRect(left - freeWidth/2, top, left + freeWidth/2,top+fontHeight);
+      hal->fillRect(left + len*fontWidth, top, left + len*fontWidth + freeWidth/2,top+fontHeight);
+    }
+   }
+
+   lastStepsPerRevolutionLength = len;
+   
+   hal->setColor(VGA_BLUE);
+   hal->setBackColor(SCREEN_BACK_COLOR);
+   hal->print(strToDraw.c_str(),left,top);   
+
+   return (top + fontHeight + 10);
+}
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+// MicrostepScreen
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+MicrostepScreen* Microstep = NULL;        
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+MicrostepScreen::MicrostepScreen() : AbstractHALScreen()
+{
+  Microstep = this;
+  wantRedrawSetting = false;
+  lastSettingLength = 0;
+
+}
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+MicrostepScreen::~MicrostepScreen()
+{
+}
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+void MicrostepScreen::onDeactivate()
+{
+  // станем неактивными
+  Settings.setDivider(setting);
+  wantRedrawSetting = false;
+  
+}
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+void MicrostepScreen::onActivate()
+{
+  // мы активизируемся
+  setting = Settings.getDivider();  
+}
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+void MicrostepScreen::onEvent(Event event, void* param)
+{
+  if(!isActive())
+    return;  
+
+    switch(event)
+    {
+      case StepsRequested: // запросили шагать на определённое кол-во шагов
+      {
+        
+      }
+      break; // StepsRequested
+      
+      case StepperWorkDone: // движок остановился
+      {
+        
+      }
+      break; // StepperWorkDone
+
+      case RotationRequested: // запросили вращение
+      {
+        
+      }
+      break; // RotationRequested
+            
+      case EncoderPositionChanged: // смена позиции энкодера
+      {
+        int changes = *((int*) param);
+        if(changes != 0)
+        {
+              Screen.notifyAction(this); // говорим, что мы отработали чего-то, т.е. на экране происходит действия.
+
+               if(changes > 0)
+               {
+                  if(setting == 1)
+                    setting = 2;
+                  else if(setting == 2)
+                    setting = 4;
+                  else if(setting == 4)
+                    setting = 8;
+                  else if(setting == 8)
+                    setting = 16;
+                  else if(setting == 16)
+                    setting = 32;
+                  else if(setting == 32)
+                    setting = 64;
+                  else
+                    setting = 1;
+               }
+               else
+               {
+                  if(setting == 1)
+                    setting = 64;
+                  else if(setting == 2)
+                    setting = 1;
+                  else if(setting == 4)
+                    setting = 2;
+                  else if(setting == 8)
+                    setting = 4;
+                  else if(setting == 16)
+                    setting = 8;
+                  else if(setting == 32)
+                    setting = 16;
+                  else if(setting == 64)
+                    setting = 32;
+                 else
+                    setting = 64;
+               }
+                
+              wantRedrawSetting = true;
+        }
+      }
+      break; // EncoderPositionChanged
+
+      case EncoderButtonClicked: // кликнута кнопка энкодера
+      {
+        Screen.notifyAction(this); // говорим, что мы отработали чего-то, т.е. на экране происходит действия.
+
+        // переключаемся на экран настроек
+        DBGLN(F("Back to settings screen!"));
+        Screen.switchToScreen(Tune);              
+        
+      }
+      break; // EncoderButtonClicked
+
+
+      case ButtonStateChanged: // состояние какой-либо кнопки изменилось
+      {        
+      }
+      break; // ButtonStateChanged
+      
+    } // switch    
+}
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+void MicrostepScreen::doSetup(HalDC* hal)
+{
+}
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+void MicrostepScreen::doUpdate(HalDC* hal)
+{
+  if(!isActive())
+    return;
+
+    if(wantRedrawSetting)
+    {
+      wantRedrawSetting = false;
+      drawSetting(hal,80);
+    } // if
+
+}
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+void MicrostepScreen::doDraw(HalDC* hal)
+{
+   hal->clearScreen();
+
+   // тут отрисовка текущего состояния
+   drawGUI(hal);
+
+   hal->updateDisplay();
+}
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+void MicrostepScreen::drawGUI(HalDC* hal)
+{
+  int screenWidth = hal->getScreenWidth();
+   
+   hal->setFont(SCREEN_BIG_FONT);
+   int fontWidth = hal->getFontWidth(SCREEN_BIG_FONT);
+
+   hal->setBackColor(SCREEN_BACK_COLOR);
+   hal->setColor(SCREEN_TEXT_COLOR);  
+
+  int top = 20;
+   
+   String strToDraw = F("ДЕЛИТЕЛЬ ШАГА");
+   int len = hal->print(strToDraw.c_str(),0,0,0,true);
+   int left = (screenWidth - fontWidth*len)/2;
+   hal->print(strToDraw.c_str(),left,top);
+
+   top =  drawSetting(hal,80);
+
+   drawBackButton(hal,true);
+   
+}
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+int MicrostepScreen::drawSetting(HalDC* hal, int top)
+{
+   int screenWidth = hal->getScreenWidth();
+   hal->setFont(SevenSeg_XXXL_Num);
+   int fontWidth = hal->getFontWidth(SevenSeg_XXXL_Num);
+   int fontHeight = hal->getFontHeight(SevenSeg_XXXL_Num);
+
+
+  // у нас позиций - максимум 4, т.е. 1/64
+  int widthOccupied = fontWidth*4;
+
+  // вычисляем левую границу
+  int left = (screenWidth - widthOccupied)/2;
+
+  // рисуем первую единицу
+  String strToDraw;
+  strToDraw = '1';
+
+  hal->setColor(VGA_BLUE);
+  hal->setBackColor(SCREEN_BACK_COLOR);
+  hal->print(strToDraw.c_str(),left,top);
+  left += fontWidth;
+
+  // рисуем двоеточие
+  hal->setFont(AdditionalLettersFont);
+  strToDraw = '0'; // рисуем слеш '/'
+  hal->print(strToDraw.c_str(),left,top);
+  left += fontWidth;
+  hal->setFont(SevenSeg_XXXL_Num);
+
+  // рисуем значение делителя
+   strToDraw = setting;
+   int len = hal->print(strToDraw.c_str(),0,0,0,true);
+   if(lastSettingLength && lastSettingLength != len)
+   {
+    if(len < lastSettingLength)
+    {
+      // разрядность уменьшилась, надо пересчитать, какие прямоугольники заливать, поскольку мы рисуем по центру
+      int diff = lastSettingLength - len;
+      int freeWidth = diff*fontWidth;
+      
+      hal->setColor(SCREEN_BACK_COLOR);
+      hal->fillRect(left + len*fontWidth, top, left + len*fontWidth + freeWidth,top+fontHeight);
+    }
+   }
+
+   lastSettingLength = len;   
+   hal->setColor(VGA_BLUE);
+   hal->setBackColor(SCREEN_BACK_COLOR);
+   hal->print(strToDraw.c_str(),left,top);   
+  
+
+/*
+    
+   String strToDraw;
+   strToDraw = setting;
+   int len = hal->print(strToDraw.c_str(),0,0,0,true);
+   int left = (screenWidth - fontWidth*len)/2;
+
+   if(lastSettingLength && lastSettingLength != len)
+   {
+    if(len < lastSettingLength)
+    {
+      // разрядность уменьшилась, надо пересчитать, какие прямоугольники заливать, поскольку мы рисуем по центру
+      int diff = lastSettingLength - len;
+      int freeWidth = diff*fontWidth;
+      
+      hal->setColor(SCREEN_BACK_COLOR);
+      hal->fillRect(left - freeWidth/2, top, left + freeWidth/2,top+fontHeight);
+      hal->fillRect(left + len*fontWidth, top, left + len*fontWidth + freeWidth/2,top+fontHeight);
+    }
+   }
+
+   lastSettingLength = len;
+   
+   hal->setColor(VGA_BLUE);
+   hal->setBackColor(SCREEN_BACK_COLOR);
+   hal->print(strToDraw.c_str(),left,top);   
+*/
+   return (top + fontHeight + 10);
+}
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 // StepsScreen
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 StepsScreen* Steps = NULL;        
@@ -733,6 +1371,13 @@ void StepsScreen::onActivate()
   rotationSpeed = Settings.getRotationSpeed();
   steps = Settings.getSteps();
   selectedMenu = 0; // выбираем кол-во шагов
+  
+  bool w = !MotorController.isOnIdle();
+  if(w != isInWork)
+  {
+    isInWork = w;
+    wantDrawStepperStatus = true;
+  }
   
 }
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -810,6 +1455,10 @@ void StepsScreen::onEvent(Event event, void* param)
               {
                 // переключаемся на стартовый экран
                 DBGLN(F("Back to main screen!"));
+                
+                if(isInWork) // перед переключением на другой экран принудительно останавливаем мотор!!!
+                  stopSteps(true);
+                  
                 Screen.switchToScreen(StartScreen);    
               }
               break;
@@ -998,7 +1647,7 @@ int StepsScreen::drawRotationSpeed(HalDC* hal, int top)
       {
         hal->setColor(selectedMenu == 1 ? SCREEN_BACK_COLOR : VGA_BLUE);
         int offset = left-fontWidth*(lastRotationSpeedLength-len);
-        hal->fillRect(offset, top, offset + fontWidth,top+fontHeight);
+        hal->fillRect(offset, top, offset + fontWidth*(lastRotationSpeedLength-len),top+fontHeight);
       }
    }
 
@@ -1029,7 +1678,7 @@ void StepsScreen::drawSteps(HalDC* hal, int top)
       {
         hal->setColor(selectedMenu == 0 ? SCREEN_BACK_COLOR : VGA_BLUE);
         int offset = left+fontWidth*(3 - (lastStepsLength-len));
-        hal->fillRect(offset, top, offset + fontWidth,top+fontHeight);
+        hal->fillRect(offset, top, offset + fontWidth*(3 - (lastStepsLength-len)),top+fontHeight);
       }
    }
 
@@ -1069,7 +1718,7 @@ void StepsScreen::startSteps(bool ccw)
   }
   #endif
 
-  Events.raise(StepsRequested, &rr);
+  Events.raise(this,StepsRequested, &rr);
   wantDrawStepperStatus = true;
 
 }
@@ -1099,10 +1748,294 @@ void StepsScreen::stopSteps(bool ccw)
   }
   #endif
 
-  Events.raise(StepsRequested, &rr);
+  Events.raise(this,StepsRequested, &rr);
   wantDrawStepperStatus = true;
 
 }
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+// ReductionScreen
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ReductionScreen* Reduction = NULL;        
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ReductionScreen::ReductionScreen() : AbstractHALScreen()
+{
+  Reduction = this;
+  wantRedrawReductionMotor = false;
+  wantRedrawReductionGear = false;
+
+  lastReductionGearLength = 0;
+  lastReductionMotorLength = 0;
+  selectedMenu = 0; // выбираем первый делитель
+
+}
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ReductionScreen::~ReductionScreen()
+{
+}
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+void ReductionScreen::onDeactivate()
+{
+  // станем неактивными
+  Settings.setMotorReduction(reductionMotor);
+  Settings.setGearReduction(reductionGear);
+  
+  wantRedrawReductionGear = false;
+  wantRedrawReductionMotor = false;
+  wantRedrawBackButton = false;
+  
+}
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+void ReductionScreen::onActivate()
+{
+  // мы активизируемся
+  reductionMotor = Settings.getMotorReduction();
+  reductionGear = Settings.getGearReduction();
+  selectedMenu = 0; // выбираем первый делитель
+  
+}
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+void ReductionScreen::onEvent(Event event, void* param)
+{
+  if(!isActive())
+    return;  
+
+    switch(event)
+    {
+      case StepsRequested: // запросили шагать на определённое кол-во шагов
+      {
+      }
+      break; // StepsRequested
+      
+      case StepperWorkDone: // движок остановился
+      {
+      }
+      break; // StepperWorkDone
+
+      case RotationRequested: // запросили вращение
+      {
+      }
+      break; // RotationRequested
+            
+      case EncoderPositionChanged: // смена позиции энкодера
+      {
+        int changes = *((int*) param);
+        if(changes != 0)
+        {
+            Screen.notifyAction(this); // говорим, что мы отработали чего-то, т.е. на экране происходит действия.
+            switch(selectedMenu)
+            {
+              case 0: // выбран первый делитель
+              {
+                reductionMotor += changes;
+                if(reductionMotor < 1)
+                  reductionMotor = 1;
+                  
+                if(reductionMotor > 100)
+                  reductionMotor = 100;
+
+                wantRedrawReductionMotor = true;
+              }
+              break;
+
+              case 1: // выбран второй делитель
+              {
+                 reductionGear += changes;
+              
+                if(reductionGear < 1)
+                  reductionGear = 1;
+                if(reductionGear > 100)
+                  reductionGear = 100;
+                  
+                wantRedrawReductionGear = true;
+              }
+              break;
+
+              case 2: // выбрана кнопка "назад"
+              {
+                // переключаемся на экран настроек
+                DBGLN(F("Back to settings screen!"));
+                Screen.switchToScreen(Tune);    
+              }
+              break;
+              
+            } // switch
+            
+        }
+      }
+      break; // EncoderPositionChanged
+
+      case EncoderButtonClicked: // кликнута кнопка энкодера
+      {
+
+        int8_t lastSelMenu = selectedMenu;
+        selectedMenu++;
+        if(selectedMenu > 2)
+          selectedMenu = 0;
+
+          switch(lastSelMenu)
+          {
+            case 0: wantRedrawReductionMotor = true; break;
+            case 1: wantRedrawReductionGear = true; break;
+            case 2: wantRedrawBackButton = true; break;
+          }
+
+          switch(selectedMenu)
+          {
+            case 0: wantRedrawReductionMotor = true; break;
+            case 1: wantRedrawReductionGear = true; break;
+            case 2: wantRedrawBackButton = true; break;
+          }
+        
+        Screen.notifyAction(this); // говорим, что мы отработали чего-то, т.е. на экране происходит действия.
+      }
+      break; // EncoderButtonClicked
+
+
+      case ButtonStateChanged: // состояние какой-либо кнопки изменилось
+      {      
+      }
+      break; // ButtonStateChanged
+      
+    } // switch    
+}
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+void ReductionScreen::doSetup(HalDC* hal)
+{
+}
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+void ReductionScreen::doUpdate(HalDC* hal)
+{
+  if(!isActive())
+    return;
+
+    if(wantRedrawReductionMotor || wantRedrawReductionGear)
+    {
+      drawReductions(hal,80);
+      wantRedrawReductionMotor = false;
+      wantRedrawReductionGear = false;
+    } // if
+
+    if(wantRedrawBackButton)
+    {
+      wantRedrawBackButton = false;
+      drawBackButton(hal,selectedMenu == 2);
+    }
+
+}
+
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+void ReductionScreen::doDraw(HalDC* hal)
+{
+   hal->clearScreen();
+
+   // тут отрисовка текущего состояния
+   wantRedrawReductionMotor = true;
+   wantRedrawReductionGear = true;
+   drawGUI(hal);
+
+   hal->updateDisplay();
+}
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+void ReductionScreen::drawGUI(HalDC* hal)
+{
+  int screenWidth = hal->getScreenWidth();
+   
+   hal->setFont(SCREEN_BIG_FONT);
+   int fontWidth = hal->getFontWidth(SCREEN_BIG_FONT);
+   hal->setBackColor(SCREEN_BACK_COLOR);
+   hal->setColor(SCREEN_TEXT_COLOR);  
+
+  int top = 20;
+   
+   String strToDraw = F("ПЕРЕДАТОЧНОЕ ЧИСЛО");
+   int len = hal->print(strToDraw.c_str(),0,0,0,true);
+   int left = (screenWidth - fontWidth*len)/2;
+   hal->print(strToDraw.c_str(),left,top);
+
+    top = 80;
+  // рисуем слеш по центру экрана
+  hal->setFont(AdditionalLettersFont);
+  hal->setColor(VGA_BLUE);
+  fontWidth = hal->getFontWidth(AdditionalLettersFont);
+  left = (screenWidth - fontWidth)/2;
+  strToDraw = '0'; // рисуем слеш '/'
+  hal->print(strToDraw.c_str(),left,top);
+
+
+  drawReductions(hal,top);
+
+
+   drawBackButton(hal,selectedMenu == 2);
+   
+}
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+void ReductionScreen::drawReductions(HalDC* hal, int top)
+{
+   int screenWidth = hal->getScreenWidth();
+   hal->setFont(SevenSeg_XXXL_Num);
+   int fontWidth = hal->getFontWidth(SevenSeg_XXXL_Num);
+   int fontHeight = hal->getFontHeight(SevenSeg_XXXL_Num);
+     
+  // у нас для редукции - максимально 3*2+1=7 позиций, например, 100/100
+  // мы рисуем по центру экрана, редукция мотора выровнена вправо, редуктора - влево, между ними - слеш
+  int screenCenter = screenWidth/2;
+
+  if(wantRedrawReductionMotor) // надо перерисовать текущее значение числителя
+  {
+    wantRedrawReductionMotor = false;
+    
+    int rightBorder = screenCenter - fontWidth/2; // это наша правая граница, с которой начнутся все отсчёты
+    String strToDraw;
+    strToDraw = reductionMotor;
+    int len = hal->print(strToDraw.c_str(),0,0,0,true);
+    int left = rightBorder - len*fontWidth; // это - текущая левая граница, с которой надо рисовать
+
+    if(lastReductionMotorLength && lastReductionMotorLength != len)
+     {    
+        if(len < lastReductionMotorLength) // уменьшили разрядность числа
+        {
+          hal->setColor(selectedMenu == 0 ? SCREEN_BACK_COLOR : VGA_BLUE);
+          int offset = left - fontWidth*(lastReductionMotorLength-len);
+          hal->fillRect(offset, top, offset + fontWidth*(lastReductionMotorLength-len),top+fontHeight);
+        }
+     }  
+
+   lastReductionMotorLength = len;
+   
+   hal->setColor(selectedMenu == 0 ? SCREEN_BACK_COLOR : VGA_BLUE);
+   hal->setBackColor(selectedMenu == 0 ? VGA_BLUE : SCREEN_BACK_COLOR);
+   hal->print(strToDraw.c_str(),left,top);          
+    
+  } // if(wantRedrawReductionMotor)
+
+  if(wantRedrawReductionGear)  // надо перерисовать текущее значение знаменателя
+  {
+    wantRedrawReductionGear = false;
+    
+    int left = screenCenter + fontWidth/2; // наша левая граница
+    String strToDraw;
+    strToDraw = reductionGear;
+    int len = hal->print(strToDraw.c_str(),0,0,0,true);
+
+   if(lastReductionGearLength && lastReductionGearLength != len)
+   {
+      if(len < lastReductionGearLength) // уменьшили разрядность числа
+      {
+        hal->setColor(selectedMenu == 1 ? SCREEN_BACK_COLOR : VGA_BLUE);
+        int offset = left + fontWidth*len;
+        hal->fillRect(offset, top, offset + fontWidth*(lastReductionGearLength-len),top+fontHeight);
+      }
+   }
+
+   lastReductionGearLength = len;    
+
+    hal->setColor(selectedMenu == 1 ? SCREEN_BACK_COLOR : VGA_BLUE);
+    hal->setBackColor(selectedMenu == 1 ? VGA_BLUE : SCREEN_BACK_COLOR);
+    hal->print(strToDraw.c_str(),left,top);          
+    
+  } // if(wantRedrawReductionGear)
+}
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------

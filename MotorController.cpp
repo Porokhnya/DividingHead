@@ -31,14 +31,21 @@ void MotorControllerClass::init()
   
 }
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+float MotorControllerClass::getStepsPerRevolution()
+{
+  float stepsPerRevolution = Settings.getStepsPerRevolution();
+  stepsPerRevolution *= Settings.getDivider();
+  stepsPerRevolution /= Settings.getGearReduction();
+  stepsPerRevolution *= Settings.getMotorReduction();
+
+  return stepsPerRevolution;
+}
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 uint32_t MotorControllerClass::computeTimerInterval(uint8_t percentsOfMaxSpeed)
 {
   // высчитываем интервал между тиками таймера
   
-  float stepsPerRevolution = Settings.getStepsPerRevolution();
-  stepsPerRevolution *= Settings.getDivider();
-  stepsPerRevolution /= Settings.getMotorReduction();
-  stepsPerRevolution *= Settings.getGearReduction();
+  float stepsPerRevolution = getStepsPerRevolution();
 
   DBG(F("Computed stepsPerRevolution = "));
   DBGLN(stepsPerRevolution);
@@ -188,7 +195,7 @@ void MotorControllerClass::stepperDone()
     
     DBGLN(F("STEPPER DONE, stop it, stop Timer1."));
 
-    Events.raise(StepperWorkDone,NULL);          
+    Events.raise(this,StepperWorkDone,NULL);          
 }
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 void MotorControllerClass::update()

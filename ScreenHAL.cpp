@@ -183,7 +183,7 @@ void HalDC::switchToScreen(unsigned int screenIndex)
       switchToScreen(screens[screenIndex]);
 }
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-void HalDC::drawBitmap(int x, int y, int w, int h, const unsigned int* bmp)
+void HalDC::drawBitmap(int x, int y, int w, int h, unsigned int* bmp)
 {
   #if DISPLAY_USED == DISPLAY_TFT
    halDCDescriptor->drawBitmap(x,y,w,h,bmp);

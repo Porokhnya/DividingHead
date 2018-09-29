@@ -63,6 +63,22 @@ void setup()
   Screen.addScreen(StepsScreen::create()); // добавляем экран шагания
   DBGLN(F("Steps screen added.")); 
 
+  DBGLN(F("Add settings screen...")); 
+  Screen.addScreen(TuneScreen::create()); // добавляем экран настроек
+  DBGLN(F("Settings screen added.")); 
+
+  DBGLN(F("Add motor setup screen...")); 
+  Screen.addScreen(MotorSetupScreen::create()); // добавляем экран настроек мотора
+  DBGLN(F("Motor setup screen added.")); 
+
+  DBGLN(F("Add microstep setup screen...")); 
+  Screen.addScreen(MicrostepScreen::create()); // добавляем экран настроек делителя шага
+  DBGLN(F("Microstep screen added.")); 
+
+  DBGLN(F("Add reduction setup screen...")); 
+  Screen.addScreen(ReductionScreen::create()); // добавляем экран настроек редукции
+  DBGLN(F("Reduction screen added.")); 
+
     // переключаемся на экран заставки
   Screen.switchToScreen(Splash);
 
@@ -84,13 +100,13 @@ void pollEncoder()
   int changes = encoder.getChange();
   if(changes != 0)
   {
-    Events.raise(EncoderPositionChanged, &changes);
+    Events.raise(NULL,EncoderPositionChanged, &changes);
   }
 
   encoderButton.update();
   if(encoderButton.isClicked())
   {
-    Events.raise(EncoderButtonClicked,NULL);
+    Events.raise(NULL,EncoderButtonClicked,NULL);
   }
   
 }
@@ -108,7 +124,7 @@ void raiseButtonState(Button& btn, uint8_t btnID)
   if(p.state)
   {
     p.button = btnID;
-    Events.raise(ButtonStateChanged, &p);
+    Events.raise(NULL,ButtonStateChanged, &p);
   }
   
 }

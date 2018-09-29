@@ -34,7 +34,7 @@ class HalDC;
   extern FONT_TYPE SmallRusFont[];             // какой шрифт используем
   extern FONT_TYPE Various_Symbols_16x32[];    // какой шрифт используем
   extern FONT_TYPE Various_Symbols_32x32[];    // какой шрифт используем
-  extern FONT_TYPE SevenSegNumFontMDS[];
+  extern FONT_TYPE AdditionalLettersFont[];
   extern FONT_TYPE SevenSeg_XXXL_Num[];
   
   #define SCREEN_BACK_COLOR VGA_WHITE          // цвет фона
@@ -134,7 +134,7 @@ public:
   uint16_t getFontWidth(FONT_TYPE* font);
   uint16_t getFontHeight(FONT_TYPE* font);
 
-  void drawBitmap(int x, int y, int w, int h, const unsigned int* bmp);
+  void drawBitmap(int x, int y, int w, int h, unsigned int* bmp);
 
   uint16_t getScreenWidth();
   uint16_t getScreenHeight();

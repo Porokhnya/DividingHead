@@ -8,8 +8,9 @@ EventsClass::EventsClass()
   
 }
 //--------------------------------------------------------------------------------------------------------------------------------------
-void EventsClass::raise(Event evt, void* param)
+void EventsClass::raise(EventSender s, Event evt, void* param)
 {
+  sender = s;
   #ifdef _DEBUG
     switch(evt)
     {

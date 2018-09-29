@@ -52,19 +52,23 @@ struct IEventSubscriber
 };
 //--------------------------------------------------------------------------------------------------------------------------------------
 typedef Vector<IEventSubscriber*> IEventSubscriberList;
+typedef void* EventSender;
 //--------------------------------------------------------------------------------------------------------------------------------------
 class EventsClass
 {
   private:
 
     IEventSubscriberList list;
+    EventSender sender;
   
 public:
   EventsClass();
 
-  void raise(Event event, void* param);
+  void raise(EventSender sender, Event event, void* param);
   void subscribe(IEventSubscriber* s);
   void unsubscribe(IEventSubscriber* s);
+
+  EventSender getEventSender(){ return sender; }
 
 };
 //--------------------------------------------------------------------------------------------------------------------------------------

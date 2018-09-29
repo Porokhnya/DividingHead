@@ -42,6 +42,8 @@ class MotorControllerClass : public IEventSubscriber
     void update();
 
     int32_t getRemainingSteps(){ return remainingSteps; }
+    float getStepsPerRevolution();
+    bool isOnIdle() { return driver->isOnIdle(); }
 
   private:
     StepperWorkMode workMode;

@@ -59,6 +59,10 @@ void setup()
   Screen.addScreen(RotationScreen::create()); // добавляем экран вращения
   DBGLN(F("Rotation screen added.")); 
 
+  DBGLN(F("Add steps screen...")); 
+  Screen.addScreen(StepsScreen::create()); // добавляем экран шагания
+  DBGLN(F("Steps screen added.")); 
+
     // переключаемся на экран заставки
   Screen.switchToScreen(Splash);
 

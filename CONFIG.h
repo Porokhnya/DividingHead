@@ -91,7 +91,7 @@
 #define REDUCTION_GEAR_STORE_ADDRESS 25 // адрес хранения коэффициента редукции на редукторе (3 байта)
 #define MICROSTEP_DIVIDER_STORE_ADDRESS 30 // адрес хранения настройки микрошага (3 байта)
 #define STEPS_PER_REVOLUTION_STORE_ADDRESS 35 // адрес хранения кол-ва шагов на оборот в полношаговом режиме (4 байта)
-
+#define STEPS_STORE_ADDRESS 40 // адрес хранения выставленного кол-ва шагов на экране шагания (4 байта)
 
 
 

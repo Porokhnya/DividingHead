@@ -2,6 +2,7 @@
 #include "Screens.h"
 #include "CONFIG.h"
 #include "Settings.h"
+#include "MotorController.h"
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 MainScreen* StartScreen = NULL;        
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -37,6 +38,28 @@ void drawBackButton(HalDC* hal, bool active)
   int len = hal->print(strToDraw.c_str(),0,0,0,true);
   hal->print(strToDraw.c_str(),(screenWidth - fontWidth*len)/2,top + (BUTTON_HEIGHT-fontHeight)/2);  
   
+}
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+void drawStepperStatus(HalDC* hal,bool active)
+{
+  hal->setFont(Various_Symbols_32x32);
+  int fontWidth = hal->getFontWidth(Various_Symbols_32x32);
+  int screenWidth = hal->getScreenWidth();
+  int offset = 5;
+  
+  if(active)
+  {
+    hal->setBackColor(SCREEN_BACK_COLOR);
+    hal->setColor(VGA_BLUE);
+    hal->print("_",screenWidth-fontWidth-offset,offset);
+  }
+  else
+  {
+    hal->setColor(SCREEN_BACK_COLOR);
+    int left = screenWidth-fontWidth-offset;
+    hal->fillRect(left,offset,left+fontWidth,offset+fontWidth);
+  }
+    
 }
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 void setButtonActive(UTFT_Buttons_Rus* bb, int bID)
@@ -85,6 +108,30 @@ void MainScreen::onEvent(Event event, void* param)
 
     switch(event)
     {
+      case StepsRequested: // запросили шагать на определённое кол-во шагов
+      {
+        
+      }
+      break; // StepsRequested
+      
+      case StepperWorkDone: // движок остановился
+      {
+        
+      }
+      break; // StepperWorkDone
+
+      case RotationRequested: // запросили вращение
+      {
+        
+      }
+      break; // RotationRequested
+
+      case ButtonStateChanged: // изменилось состояние кнопки
+      {
+        
+      }
+      break; // ButtonStateChanged
+    
       case EncoderPositionChanged: // смена позиции энкодера
       {
         int changes = *((int*) param);
@@ -130,13 +177,14 @@ void MainScreen::onEvent(Event event, void* param)
 
           case STEP_BUTTON:
           {
-            DBGLN(F("Step screen!"));     
+            DBGLN(F("Switch to steps screen!"));
+            Screen.switchToScreen(Steps);     
           }
           break;
 
           case ROTATION_BUTTON:
           {
-            DBGLN(F("Rotation screen!"));
+            DBGLN(F("Switch to rotation screen!"));
             Screen.switchToScreen(Rotation);     
           }
           break;
@@ -249,7 +297,7 @@ void SplashScreen::doUpdate(HalDC* hal)
   if(!isActive())
     return;
 
-  if(showTime && (millis() - showTime > 5000))
+  if(showTime && (millis() - showTime > 3000))
   {
     DBGLN(F("Splash done, switch to main screen!"));
     Screen.switchToScreen(StartScreen);
@@ -330,6 +378,8 @@ RotationScreen::RotationScreen() : AbstractHALScreen()
   ccwButtonPressed = false;
   cwButtonPressed = false;
   speedSelected = true;
+  wantDrawStepperStatus = false;
+
 }
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 RotationScreen::~RotationScreen()
@@ -378,6 +428,7 @@ void RotationScreen::startRotate(bool ccw)
   #endif
 
   Events.raise(RotationRequested, &rr);
+  wantDrawStepperStatus = true;
 
 }
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -403,6 +454,7 @@ void RotationScreen::stopRotate(bool ccw)
   #endif
 
   Events.raise(RotationRequested, &rr);
+  wantDrawStepperStatus = true;
 
 }
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -413,6 +465,24 @@ void RotationScreen::onEvent(Event event, void* param)
 
     switch(event)
     {
+      case StepsRequested: // запросили шагать на определённое кол-во шагов
+      {
+        
+      }
+      break; // StepsRequested
+      
+      case StepperWorkDone: // движок остановился
+      {
+        
+      }
+      break; // StepperWorkDone
+
+      case RotationRequested: // запросили вращение
+      {
+        
+      }
+      break; // RotationRequested
+            
       case EncoderPositionChanged: // смена позиции энкодера
       {
         int changes = *((int*) param);
@@ -533,6 +603,12 @@ void RotationScreen::doUpdate(HalDC* hal)
       drawBackButton(hal,!speedSelected);
     }
 
+    if(wantDrawStepperStatus)
+    {
+      wantDrawStepperStatus = false;
+      drawStepperStatus(hal,isInWork);
+    }
+
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -559,7 +635,7 @@ void RotationScreen::drawGUI(HalDC* hal)
   int top = 20;
   int vSpacing = 10;
    
-   String strToDraw = F("СКОРОСТЬ ВРАЩЕНИЯ:");
+   String strToDraw = F("СКОРОСТЬ ВРАЩЕНИЯ");
    int len = hal->print(strToDraw.c_str(),0,0,0,true);
    int left = (screenWidth - fontWidth*len)/2;
    hal->print(strToDraw.c_str(),left,top);
@@ -587,6 +663,7 @@ void RotationScreen::drawGUI(HalDC* hal)
 
 
    drawBackButton(hal,!speedSelected);
+   drawStepperStatus(hal,isInWork);
    
 }
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -618,6 +695,414 @@ int RotationScreen::drawRotationSpeed(HalDC* hal, int top)
    return (top + fontHeight + 10);
 }
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+// StepsScreen
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+StepsScreen* Steps = NULL;        
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+StepsScreen::StepsScreen() : AbstractHALScreen()
+{
+  Steps = this;
+  wantRedrawRotationSpeed = false;
+  lastRotationSpeedLength = 0;
+  lastStepsLength = 0;
+  isInWork = false;
+  wantDrawStepperStatus = false;
+  wantRedrawSteps = false;
+  steps = 200;
+
+}
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+StepsScreen::~StepsScreen()
+{
+}
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+void StepsScreen::onDeactivate()
+{
+  // станем неактивными
+  Settings.setRotationSpeed(rotationSpeed);
+  Settings.setSteps(steps);
+  wantRedrawRotationSpeed = false;
+  wantRedrawBackButton = false;
+  wantRedrawSteps = false;
+  
+}
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+void StepsScreen::onActivate()
+{
+  // мы активизируемся
+  rotationSpeed = Settings.getRotationSpeed();
+  steps = Settings.getSteps();
+  selectedMenu = 0; // выбираем кол-во шагов
+  
+}
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+void StepsScreen::onEvent(Event event, void* param)
+{
+  if(!isActive())
+    return;  
+
+    switch(event)
+    {
+      case StepsRequested: // запросили шагать на определённое кол-во шагов
+      {
+        
+      }
+      break; // StepsRequested
+      
+      case StepperWorkDone: // движок остановился
+      {
+        #ifdef _DEBUG
+          int32_t thisSteps = steps;
+          thisSteps -= MotorController.getRemainingSteps();
+          DBG(thisSteps);
+          DBGLN(F(" STEPS DONE!"));
+        #endif
+        
+        if(isInWork)
+        {
+          isInWork = false;
+          wantDrawStepperStatus = true;
+        }
+      }
+      break; // StepperWorkDone
+
+      case RotationRequested: // запросили вращение
+      {
+        
+      }
+      break; // RotationRequested
+            
+      case EncoderPositionChanged: // смена позиции энкодера
+      {
+        int changes = *((int*) param);
+        if(changes != 0)
+        {
+            Screen.notifyAction(this); // говорим, что мы отработали чего-то, т.е. на экране происходит действия.
+            switch(selectedMenu)
+            {
+              case 0: // выбрано кол-во шагов
+              {
+                steps += changes;
+                if(steps < 1)
+                  steps = 1;
+                  
+                if(steps > 999)
+                  steps = 999;
+
+                wantRedrawSteps = true;
+              }
+              break;
+
+              case 1: // выбрана скорость
+              {
+                 rotationSpeed += changes;
+              
+                if(rotationSpeed < 1)
+                  rotationSpeed = 1;
+                if(rotationSpeed > 100)
+                  rotationSpeed = 100;
+                  
+                wantRedrawRotationSpeed = true;
+              }
+              break;
+
+              case 2: // выбрана кнопка "назад"
+              {
+                // переключаемся на стартовый экран
+                DBGLN(F("Back to main screen!"));
+                Screen.switchToScreen(StartScreen);    
+              }
+              break;
+              
+            } // switch
+            
+        }
+      }
+      break; // EncoderPositionChanged
+
+      case EncoderButtonClicked: // кликнута кнопка энкодера
+      {
+
+        int8_t lastSelMenu = selectedMenu;
+        selectedMenu++;
+        if(selectedMenu > 2)
+          selectedMenu = 0;
+
+          switch(lastSelMenu)
+          {
+            case 0: wantRedrawSteps = true; break;
+            case 1: wantRedrawRotationSpeed = true; break;
+            case 2: wantRedrawBackButton = true; break;
+          }
+
+          switch(selectedMenu)
+          {
+            case 0: wantRedrawSteps = true; break;
+            case 1: wantRedrawRotationSpeed = true; break;
+            case 2: wantRedrawBackButton = true; break;
+          }
+        
+        Screen.notifyAction(this); // говорим, что мы отработали чего-то, т.е. на экране происходит действия.
+      }
+      break; // EncoderButtonClicked
+
+
+      case ButtonStateChanged: // состояние какой-либо кнопки изменилось
+      {
+        Screen.notifyAction(this); // говорим, что мы отработали чего-то, т.е. на экране происходит действия.
+        ButtonEventParam* p = (ButtonEventParam*) param;
+
+        if(p->state & BUTTON_CLICKED)
+        {
+          // кнопка кликнута
+          if(isInWork)
+          {
+            // работаем ещё, надо остановить мотор
+            DBGLN(F("Stop motor prematurely!!!"));
+            stopSteps(p->button == LEFT_BUTTON);
+          }
+          else              
+          {
+            // режим простоя, запускаем шагание
+            startSteps(p->button == LEFT_BUTTON);
+          }
+          
+        } // if(p->state & BUTTON_CLICKED)   
+        
+        
+      }
+      break; // ButtonStateChanged
+      
+    } // switch    
+}
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+void StepsScreen::doSetup(HalDC* hal)
+{
+}
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+void StepsScreen::doUpdate(HalDC* hal)
+{
+  if(!isActive())
+    return;
+
+    if(isInWork)
+       Screen.notifyAction(this); // говорим, что мы отработали чего-то, т.е. на экране происходит действия.
+
+    if(wantRedrawRotationSpeed)
+    {
+      wantRedrawRotationSpeed = false;
+      drawRotationSpeed(hal,80);
+    } // if
+
+    if(wantRedrawSteps)
+    {
+      wantRedrawSteps = false;
+      drawSteps(hal,80);
+    }
+
+    if(wantRedrawBackButton)
+    {
+      wantRedrawBackButton = false;
+      drawBackButton(hal,selectedMenu == 2);
+    }
+
+    if(wantDrawStepperStatus)
+    {
+      wantDrawStepperStatus = false;
+      drawStepperStatus(hal,isInWork);
+    }
+
+}
+
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+void StepsScreen::doDraw(HalDC* hal)
+{
+   hal->clearScreen();
+
+   // тут отрисовка текущего состояния
+   drawGUI(hal);
+
+   hal->updateDisplay();
+}
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+void StepsScreen::drawGUI(HalDC* hal)
+{
+  int screenWidth = hal->getScreenWidth();
+   
+   hal->setFont(SCREEN_BIG_FONT);
+   int fontWidth = hal->getFontWidth(SCREEN_BIG_FONT);
+   int fontHeight = hal->getFontHeight(SCREEN_BIG_FONT);
+   hal->setBackColor(SCREEN_BACK_COLOR);
+   hal->setColor(SCREEN_TEXT_COLOR);  
+
+  int top = 20;
+  int vSpacing = 10;
+   
+   String strToDraw = F("РЕЖИМ ШАГАНИЯ");
+   int len = hal->print(strToDraw.c_str(),0,0,0,true);
+   int left = (screenWidth - fontWidth*len)/2;
+   hal->print(strToDraw.c_str(),left,top);
+
+
+   hal->setColor(VGA_RED);
+   strToDraw = F("шаги");
+   hal->print(strToDraw.c_str(),40,80-fontHeight-6);
+   strToDraw = F("скорость");
+   len = hal->print(strToDraw.c_str(),0,0,0,true);
+   hal->print(strToDraw.c_str(),screenWidth - 40 - len*fontWidth,80-fontHeight-6);
+
+   drawSteps(hal,80);
+   top =  drawRotationSpeed(hal,80);
+   top += 20;
+
+   hal->setFont(SCREEN_BIG_FONT);
+   fontWidth = hal->getFontWidth(SCREEN_BIG_FONT);
+   fontHeight = hal->getFontHeight(SCREEN_BIG_FONT);
+   hal->setBackColor(SCREEN_BACK_COLOR);
+   hal->setColor(SCREEN_TEXT_COLOR);  
+
+
+   strToDraw = F("Клик < и > - работа.");
+   len = hal->print(strToDraw.c_str(),0,0,0,true);
+   left = (screenWidth - fontWidth*len)/2;
+   hal->print(strToDraw.c_str(),left,top);
+   top += fontHeight + vSpacing;
+
+   strToDraw = F("Повторно < и > - стоп.");
+   len = hal->print(strToDraw.c_str(),0,0,0,true);
+   left = (screenWidth - fontWidth*len)/2;
+   hal->print(strToDraw.c_str(),left,top);
+
+
+   drawBackButton(hal,selectedMenu == 2);
+   drawStepperStatus(hal,isInWork);
+   
+}
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+int StepsScreen::drawRotationSpeed(HalDC* hal, int top)
+{
+   int screenWidth = hal->getScreenWidth();
+   hal->setFont(SevenSeg_XXXL_Num);
+   int fontWidth = hal->getFontWidth(SevenSeg_XXXL_Num);
+   int fontHeight = hal->getFontHeight(SevenSeg_XXXL_Num);
+
+    
+   String strToDraw;
+   strToDraw = rotationSpeed;
+   int len = hal->print(strToDraw.c_str(),0,0,0,true);
+   int left = (screenWidth - fontWidth*len) - 40;
+
+   if(lastRotationSpeedLength && lastRotationSpeedLength != len)
+   {
+      if(len < lastRotationSpeedLength) // уменьшили разрядность числа
+      {
+        hal->setColor(selectedMenu == 1 ? SCREEN_BACK_COLOR : VGA_BLUE);
+        int offset = left-fontWidth*(lastRotationSpeedLength-len);
+        hal->fillRect(offset, top, offset + fontWidth,top+fontHeight);
+      }
+   }
+
+   lastRotationSpeedLength = len;
+   
+   hal->setColor(selectedMenu == 1 ? SCREEN_BACK_COLOR : VGA_BLUE);
+   hal->setBackColor(selectedMenu == 1 ? VGA_BLUE : SCREEN_BACK_COLOR);
+   hal->print(strToDraw.c_str(),left,top);   
+
+   return (top + fontHeight + 10);
+}
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+void StepsScreen::drawSteps(HalDC* hal, int top)
+{
+   hal->setFont(SevenSeg_XXXL_Num);
+   int fontWidth = hal->getFontWidth(SevenSeg_XXXL_Num);
+   int fontHeight = hal->getFontHeight(SevenSeg_XXXL_Num);
+
+    
+   String strToDraw;
+   strToDraw = steps;
+   int len = hal->print(strToDraw.c_str(),0,0,0,true);
+   int left = 40;
+
+   if(lastStepsLength && lastStepsLength != len)
+   {    
+      if(len < lastStepsLength) // уменьшили разрядность числа
+      {
+        hal->setColor(selectedMenu == 0 ? SCREEN_BACK_COLOR : VGA_BLUE);
+        int offset = left+fontWidth*(3 - (lastStepsLength-len));
+        hal->fillRect(offset, top, offset + fontWidth,top+fontHeight);
+      }
+   }
+
+   lastStepsLength = len;
+   
+   hal->setColor(selectedMenu == 0 ? SCREEN_BACK_COLOR : VGA_BLUE);
+   hal->setBackColor(selectedMenu == 0 ? VGA_BLUE : SCREEN_BACK_COLOR);
+   hal->print(strToDraw.c_str(),left,top);   
+
+}
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+void StepsScreen::startSteps(bool ccw)
+{
+  if(Settings.getRotationSpeed() != rotationSpeed)
+    Settings.setRotationSpeed(rotationSpeed);
+
+  if(Settings.getSteps() != steps)
+    Settings.setSteps(steps);
+    
+  isInWork = true;
+
+  StepsEventParam rr;
+  rr.start = true;
+  rr.ccw = ccw;
+  rr.speed = rotationSpeed;
+  rr.steps = steps;
+  
+  #ifdef _DEBUG
+  if(ccw)
+  {
+    DBGLN(F("START STEPS CCW !"));
+  }
+  else
+  {
+    DBGLN(F("START STEPS CW !"));
+    
+  }
+  #endif
+
+  Events.raise(StepsRequested, &rr);
+  wantDrawStepperStatus = true;
+
+}
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+void StepsScreen::stopSteps(bool ccw)
+{
+  if(!isInWork)
+    return;
+    
+  isInWork = false;    
+
+  StepsEventParam rr;
+  rr.start = false;
+  rr.ccw = ccw;
+  rr.speed = 0;
+  rr.steps = 0;  
+
+  #ifdef _DEBUG
+  if(ccw)
+  {
+    DBGLN(F("STOP STEPS CCW !"));
+  }
+  else
+  {
+    DBGLN(F("STOP STEPS CW !"));
+    
+  }
+  #endif
+
+  Events.raise(StepsRequested, &rr);
+  wantDrawStepperStatus = true;
+
+}
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------

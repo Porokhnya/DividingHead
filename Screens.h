@@ -119,11 +119,59 @@ private:
      bool isInWork, ccwButtonPressed, cwButtonPressed;
      void startRotate(bool ccw);
      void stopRotate(bool ccw);
+
+     bool wantDrawStepperStatus;
      
      int drawRotationSpeed(HalDC* hal, int top);
   
 };
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 extern RotationScreen* Rotation;
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+class StepsScreen : public AbstractHALScreen
+{
+  public:
+
+  static AbstractHALScreen* create()
+  {
+    return new StepsScreen();
+  }
+  
+   virtual void onActivate();
+   virtual void onDeactivate();
+
+   virtual void onEvent(Event event, void* param);
+
+
+protected:
+  
+    virtual void doSetup(HalDC* hal);
+    virtual void doUpdate(HalDC* hal);
+    virtual void doDraw(HalDC* hal);
+
+private:
+    StepsScreen();
+    ~StepsScreen();
+
+     int8_t selectedMenu;
+     uint8_t rotationSpeed;
+     uint16_t steps;
+     bool wantRedrawRotationSpeed, wantRedrawBackButton, wantRedrawSteps;
+     int lastRotationSpeedLength, lastStepsLength;
+     void drawGUI(HalDC* hal);
+     
+     bool isInWork;
+
+     bool wantDrawStepperStatus;
+     
+     int drawRotationSpeed(HalDC* hal, int top);
+     void drawSteps(HalDC* hal, int top);
+
+     void startSteps(bool ccw);
+     void stopSteps(bool ccw);
+  
+};
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+extern StepsScreen* Steps;
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 

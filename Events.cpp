@@ -70,6 +70,38 @@ void EventsClass::raise(Event evt, void* param)
         DBGLN(p->speed);
       }
       break; // RotationRequested
+
+      case StepsRequested: // запросили запустить или остановить шагание на определённое кол-во шагов
+      {
+        StepsEventParam* p = (StepsEventParam*) param;
+        if(p->start)
+        {
+          DBG(F("Start"));
+        }
+        else
+        {
+          DBG(F("Stop"));
+        }
+
+        DBG(F(" STEPPING, ccw="));
+        
+        if(p->ccw)
+        {
+          DBG(F("true"));
+        }
+        else
+        {
+          DBG(F("false"));
+        }
+
+        DBG(F(", speed="));
+        DBG(p->speed);        
+
+        DBG(F(", steps="));
+        DBGLN(p->steps);        
+        
+      }
+      break; // StepsRequested
       
     } // switch
   #endif // _DEBUG

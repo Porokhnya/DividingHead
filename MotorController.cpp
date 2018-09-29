@@ -15,6 +15,7 @@ MotorControllerClass::MotorControllerClass()
 {
   workMode = stepperIdle;
   started = false;
+  remainingSteps = 0;
 
   driver = new StepperDriver(STEP_PIN, DIR_PIN, EN_PIN);
   driver->setHoldOnStop(true); // удерживаем ток на обмотках после остановки
@@ -69,6 +70,7 @@ void MotorControllerClass::stop()
     return;
     
   DBGLN(F("STOP STEPPER!!!"));
+  remainingSteps = driver->stepsRemaining();
   driver->stop();
 }
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -79,6 +81,7 @@ void MotorControllerClass::rotate()
   if(!rotationSettings.ccw)
     steps = -steps;
 
+  remainingSteps = 0;
   driver->step(steps);
 }
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -86,6 +89,62 @@ void MotorControllerClass::onEvent(Event event, void* param)
 {
     switch(event)
     {
+      case StepperWorkDone: // движок остановился
+      {
+        
+      }
+      break; // StepperWorkDone
+
+      case ButtonStateChanged: // изменилось состояние кнопки
+      {
+        
+      }
+      break; // ButtonStateChanged
+
+      case EncoderPositionChanged: // смена позиции энкодера
+      {
+      
+      }
+      break; // EncoderPositionChanged
+
+      case EncoderButtonClicked: // кликнута кнопка энкодера
+      {
+        
+      }
+      break; // EncoderButtonClicked
+
+      case StepsRequested: // запросили запустить или остановить шагание на определённое кол-во шагов
+      {
+        StepsEventParam* p = (StepsEventParam*) param;
+        workMode = stepperStep;
+        DBG(F("STEP STEPPER with steps="));
+        DBGLN(p->steps);
+         
+        if(p->start)
+        {
+          // запускаем мотор
+          started = true;
+          
+          int32_t steps = p->steps;
+          
+          if(!p->ccw)
+            steps = -steps;
+
+          remainingSteps = 0;
+          driver->step(steps);
+            
+          Timer1.setPeriod(computeTimerInterval(p->speed));
+          Timer1.start();
+          
+        }
+        else
+        {
+          // останавливаем мотор
+          stepperDone();
+        }
+      }
+      break; // StepsRequested 
+      
       case RotationRequested: // запросили запустить или остановить вращение шаговика
       {
         workMode = stepperRotation;
@@ -151,11 +210,6 @@ void MotorControllerClass::update()
       }
       break; // stepperStep
 
-      case stepperDivideByDegrees:
-      {
-        
-      }
-      break; // stepperDivideByDegrees
       
     } // switch
     
@@ -243,15 +297,15 @@ void  StepperDriver::setHoldOnStop(boolean holdOn)
   holdOnStop = holdOn;
 }
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-int StepperDriver::stepsRemaining()  
+int32_t StepperDriver::stepsRemaining()  
 {
-  int remaining;
+  int32_t remaining;
   
   noInterrupts();
     remaining = remainingSteps;
   interrupts();
   
-  return remaining;
+  return abs(remaining);
 }
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 

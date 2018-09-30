@@ -96,6 +96,9 @@ void MotorControllerClass::onEvent(Event event, void* param)
 {
     switch(event)
     {
+      case KeyboardEvent:
+      break;
+      
       case StepperWorkDone: // движок остановился
       {
         

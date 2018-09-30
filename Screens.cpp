@@ -431,7 +431,7 @@ void TuneScreen::doSetup(HalDC* hal)
   buttonList.push_back(btn);
 
   top += BUTTON_HEIGHT + BUTTON_Y_OFFSET;
-  btn = buttons->addButton(BUTTON_X_OFFSET,top,buttonWidth,BUTTON_HEIGHT,"ПЕРЕДАТОЧНОЕ ЧИСЛО"); // настройки редукции
+  btn = buttons->addButton(BUTTON_X_OFFSET,top,buttonWidth,BUTTON_HEIGHT,"ПЕРЕДАТОЧНОЕ ОТНОШЕНИЕ"); // настройки редукции
 
   buttonList.push_back(btn);
 
@@ -2134,7 +2134,7 @@ void ReductionScreen::drawGUI(HalDC* hal)
 
   int top = 20;
    
-   String strToDraw = F("ПЕРЕДАТОЧНОЕ ЧИСЛО");
+   String strToDraw = F("ПЕРЕДАТОЧНОЕ ОТНОШЕНИЕ");
    int len = hal->print(strToDraw.c_str(),0,0,0,true);
    int left = (screenWidth - fontWidth*len)/2;
    hal->print(strToDraw.c_str(),left,top);

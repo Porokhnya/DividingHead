@@ -21,6 +21,38 @@ RotaryEncoder encoder(ENCODER_A_PIN,ENCODER_B_PIN,ENCODER_PPC);
 Button encoderButton, leftButton, rightButton;
 uint32_t screenIdleTimer = 0;
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+#ifdef USE_KEYBOARD
+  #include "MPR121.h"
+  bool hasDataFromKeyboard = false;
+  MPR121 keyboard;
+  void keyboardInterrupt()
+  {
+    hasDataFromKeyboard = true;
+  }
+
+  // преобразуем нажатые площадки в их привязанные номера
+  int8_t getKeyCode(uint8_t pressed)
+  {
+    switch(pressed)
+    {
+      case KEY_1: return 1;
+      case KEY_2: return 2;
+      case KEY_3: return 3;
+      case KEY_4: return 4;
+      case KEY_5: return 5;
+      case KEY_6: return 6;
+      case KEY_7: return 7;
+      case KEY_8: return 8;
+      case KEY_9: return 9;      
+      case KEY_0: return 0;
+      case KEY_DELETE: return DELETE_KEY;
+      case KEY_BACKSPACE: return BACKSPACE_KEY;
+    } // switch
+    
+    return -1;
+  }
+#endif // USE_KEYBOARD
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 void screenAction(AbstractHALScreen* screen)
 {
    // какое-то действие на экране произошло.
@@ -28,15 +60,58 @@ void screenAction(AbstractHALScreen* screen)
    screenIdleTimer = millis();
 }
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+#if (EEPROM_USED_MEMORY != EEPROM_BUILTIN) || defined(USE_KEYBOARD)
+void resetI2C(uint8_t sclPin, uint8_t sdaPin)
+{
+  pinMode(sdaPin, OUTPUT);
+  digitalWrite(sdaPin,HIGH);
+  pinMode(sclPin,OUTPUT);
+  
+  for(uint8_t i=0;i<10;i++) // Send NACK signal
+  {
+    digitalWrite(sclPin,HIGH);
+    delayMicroseconds(5);
+    digitalWrite(sclPin,LOW);
+    delayMicroseconds(5);   
+  }
+
+  // Send STOP signal
+  digitalWrite(sdaPin,LOW);
+  delayMicroseconds(5);
+  digitalWrite(sclPin,HIGH);
+  delayMicroseconds(2);
+  digitalWrite(sdaPin,HIGH);
+  delayMicroseconds(2);
+  
+  
+  pinMode(sclPin,INPUT);   
+  pinMode(sdaPin,INPUT);   
+}
+#endif
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 void setup() 
 {
-   #if EEPROM_USED_MEMORY != EEPROM_BUILTIN
-    Wire.begin();
+  
+   #if (EEPROM_USED_MEMORY != EEPROM_BUILTIN) || defined(USE_KEYBOARD)
+      resetI2C(SCL, SDA);
+      Wire.begin();
    #endif
   
   MemInit();
-  
+
   Serial.begin(SERIAL_SPEED);
+
+   #ifdef USE_KEYBOARD
+   
+     pinMode(KEYBOARD_IRQ_PIN,INPUT);
+     digitalWrite(KEYBOARD_IRQ_PIN,HIGH); // включаем подтяжку к питанию
+     attachInterrupt(digitalPinToInterrupt(KEYBOARD_IRQ_PIN),keyboardInterrupt,FALLING);
+     if(!keyboard.begin(KEYBOARD_ADDRESS))
+     {
+        DBGLN(F("CAN'T INIT KEYBOARD!!!"));
+     }
+   #endif // USE_KEYBOARD
+  
   
   encoder.begin();
   encoderButton.begin(ENCODER_BUTTON_PIN);
@@ -140,6 +215,29 @@ void pollButtons()
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 void loop() 
 {
+
+  #ifdef USE_KEYBOARD
+  if(hasDataFromKeyboard)
+  {
+    hasDataFromKeyboard = false;
+
+    uint16_t touched = keyboard.touched();
+    for (uint8_t i=0; i<12; i++) 
+    {
+      if(touched & (1 << i))
+      {
+        int8_t keyCode = getKeyCode(i);
+        if(keyCode != -1)
+        {
+          Events.raise(NULL,KeyboardEvent, &keyCode);
+          break;
+        }
+      }
+    } // for
+
+  }
+  #endif
+  
   pollEncoder();
   pollButtons();
   

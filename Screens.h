@@ -153,9 +153,10 @@ private:
     RotationScreen();
     ~RotationScreen();
 
-     bool speedSelected;
-     uint8_t rotationSpeed;
-     bool wantRedrawRotationSpeed, wantRedrawBackButton;
+    void validate();
+
+     uint16_t rotationSpeed;
+     bool wantRedrawRotationSpeed;
      int lastRotationSpeedLength;
      void drawGUI(HalDC* hal);
      
@@ -200,6 +201,8 @@ private:
      bool wantRedrawStepsPerRevolution;
      int lastStepsPerRevolutionLength;
      void drawGUI(HalDC* hal);
+
+     void validate();
      
      int drawStepsPerRevolution(HalDC* hal, int top);
   
@@ -232,12 +235,14 @@ private:
     MicrostepScreen();
     ~MicrostepScreen();
 
-     uint8_t setting;
+     uint16_t setting;
      bool wantRedrawSetting;
      int lastSettingLength;
      void drawGUI(HalDC* hal);
      
      int drawSetting(HalDC* hal, int top);
+
+     void validate();
   
 };
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -268,12 +273,13 @@ private:
     ~ReductionScreen();
 
      int8_t selectedMenu;
-     uint8_t reductionMotor,reductionGear;
+     uint16_t reductionMotor,reductionGear;
      bool wantRedrawReductionMotor, wantRedrawBackButton, wantRedrawReductionGear;
      int lastReductionMotorLength, lastReductionGearLength;
      void drawGUI(HalDC* hal);
 
      void drawReductions(HalDC* hal, int top);
+     void validate();
 
 };
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -305,7 +311,7 @@ private:
     ~StepsScreen();
 
      int8_t selectedMenu;
-     uint8_t rotationSpeed;
+     uint16_t rotationSpeed;
      uint16_t steps;
      bool wantRedrawRotationSpeed, wantRedrawBackButton, wantRedrawSteps;
      int lastRotationSpeedLength, lastStepsLength;
@@ -320,6 +326,8 @@ private:
 
      void startSteps(bool ccw);
      void stopSteps(bool ccw);
+
+     void validate();
   
 };
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------

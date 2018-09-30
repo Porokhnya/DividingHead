@@ -115,6 +115,9 @@ void MainScreen::onEvent(Event event, void* param)
         
       }
       break; // StepsRequested
+
+      case KeyboardEvent:
+      break;
       
       case StepperWorkDone: // движок остановился
       {
@@ -144,7 +147,7 @@ void MainScreen::onEvent(Event event, void* param)
           if(requested < 0)
             requested = buttonList.size()-1;
 
-          if(requested >= buttonList.size())
+          if(size_t(requested) >= buttonList.size())
             requested = 0;
 
           setButtonInactive(buttons,lastActiveButton);
@@ -311,6 +314,9 @@ void TuneScreen::onEvent(Event event, void* param)
 
     switch(event)
     {
+      case KeyboardEvent:
+      break;
+            
       case StepsRequested: // запросили шагать на определённое кол-во шагов
       {
         
@@ -345,7 +351,7 @@ void TuneScreen::onEvent(Event event, void* param)
           if(requested < 0)
             requested = buttonList.size()-1;
 
-          if(requested >= buttonList.size())
+          if(size_t(requested) >= buttonList.size())
             requested = 0;
 
           setButtonInactive(buttons,lastActiveButton);
@@ -574,7 +580,6 @@ RotationScreen::RotationScreen() : AbstractHALScreen()
   isInWork = false;
   ccwButtonPressed = false;
   cwButtonPressed = false;
-  speedSelected = true;
   wantDrawStepperStatus = false;
 
 }
@@ -583,12 +588,24 @@ RotationScreen::~RotationScreen()
 {
 }
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+void RotationScreen::validate()
+{
+  uint16_t before = rotationSpeed;
+  if(rotationSpeed < 1)
+    rotationSpeed = 1;
+  if(rotationSpeed > 100)
+    rotationSpeed = 100;
+
+  if(before != rotationSpeed)
+    wantRedrawRotationSpeed = true;
+}
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 void RotationScreen::onDeactivate()
 {
   // станем неактивными
+  validate();
   Settings.setRotationSpeed(rotationSpeed);
   wantRedrawRotationSpeed = false;
-  wantRedrawBackButton = false;
   
 }
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -596,7 +613,6 @@ void RotationScreen::onActivate()
 {
   // мы активизируемся
   rotationSpeed = Settings.getRotationSpeed();
-  speedSelected = true;
   bool w = !MotorController.isOnIdle();
   if(w != isInWork)
   {
@@ -609,7 +625,10 @@ void RotationScreen::onActivate()
 void RotationScreen::startRotate(bool ccw)
 {
   if(Settings.getRotationSpeed() != rotationSpeed)
+  {
+    validate();
     Settings.setRotationSpeed(rotationSpeed);
+  }
     
   isInWork = true;
 
@@ -685,6 +704,27 @@ void RotationScreen::onEvent(Event event, void* param)
         
       }
       break; // RotationRequested
+
+      case KeyboardEvent:
+      {
+          int8_t keyCode = *((int8_t*) param);
+          if(keyCode == DELETE_KEY)
+            rotationSpeed = 0;
+          else
+          if(keyCode == BACKSPACE_KEY)
+          {
+              rotationSpeed /= 10;
+          }
+          else
+          {
+            rotationSpeed *= 10;
+            rotationSpeed += keyCode;
+            validate();
+          }
+          wantRedrawRotationSpeed = true;
+          Screen.notifyAction(this); // говорим, что мы отработали чего-то, т.е. на экране происходит действия.
+      }
+      break; // KeyboardEvent
             
       case EncoderPositionChanged: // смена позиции энкодера
       {
@@ -692,34 +732,18 @@ void RotationScreen::onEvent(Event event, void* param)
         if(changes != 0)
         {
             Screen.notifyAction(this); // говорим, что мы отработали чего-то, т.е. на экране происходит действия.
-            if(speedSelected)
-            {
-              rotationSpeed += changes;
-              
-              if(rotationSpeed < 1)
-                rotationSpeed = 1;
-              if(rotationSpeed > 100)
-                rotationSpeed = 100;
-                
-              wantRedrawRotationSpeed = true;
-            }
-            else
-            {
-              // переключаемся на стартовый экран
-              DBGLN(F("Back to main screen!"));
-              Screen.switchToScreen(StartScreen);              
-            }
+            rotationSpeed += changes;
+            validate();                              
+            wantRedrawRotationSpeed = true;
         }
       }
       break; // EncoderPositionChanged
 
       case EncoderButtonClicked: // кликнута кнопка энкодера
       {
-        speedSelected = !speedSelected;
-        wantRedrawBackButton = true;
-        wantRedrawRotationSpeed = true;
-        
-        Screen.notifyAction(this); // говорим, что мы отработали чего-то, т.е. на экране происходит действия.
+        // переключаемся на стартовый экран
+        DBGLN(F("Back to main screen!"));
+        Screen.switchToScreen(StartScreen);              
       }
       break; // EncoderButtonClicked
 
@@ -800,12 +824,6 @@ void RotationScreen::doUpdate(HalDC* hal)
       drawRotationSpeed(hal,80);
     } // if
 
-    if(wantRedrawBackButton)
-    {
-      wantRedrawBackButton = false;
-      drawBackButton(hal,!speedSelected);
-    }
-
     if(wantDrawStepperStatus)
     {
       wantDrawStepperStatus = false;
@@ -865,7 +883,7 @@ void RotationScreen::drawGUI(HalDC* hal)
    hal->print(strToDraw.c_str(),left,top);
 
 
-   drawBackButton(hal,!speedSelected);
+   drawBackButton(hal,true);
    drawStepperStatus(hal,isInWork);
    
 }
@@ -885,14 +903,14 @@ int RotationScreen::drawRotationSpeed(HalDC* hal, int top)
 
    if(lastRotationSpeedLength && lastRotationSpeedLength != len)
    {
-    hal->setColor(speedSelected ? SCREEN_BACK_COLOR : VGA_BLUE);
+    hal->setColor(SCREEN_BACK_COLOR);
     hal->fillRect(left - fontWidth, top, left + fontWidth*4,top+fontHeight);
    }
 
    lastRotationSpeedLength = len;
    
-   hal->setColor(speedSelected? SCREEN_BACK_COLOR : VGA_BLUE);
-   hal->setBackColor(speedSelected? VGA_BLUE : SCREEN_BACK_COLOR);
+   hal->setColor(VGA_BLUE);
+   hal->setBackColor(SCREEN_BACK_COLOR);
    hal->print(strToDraw.c_str(),left,top);   
 
    return (top + fontHeight + 10);
@@ -914,9 +932,24 @@ MotorSetupScreen::~MotorSetupScreen()
 {
 }
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+void MotorSetupScreen::validate()
+{
+  uint16_t before = stepsPerRevolution;
+
+  if(stepsPerRevolution < 1)
+    stepsPerRevolution = 1;
+    
+  if(stepsPerRevolution > 1000)
+    stepsPerRevolution = 1000;
+                
+  if(before != stepsPerRevolution)
+    wantRedrawStepsPerRevolution = true;  
+}
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 void MotorSetupScreen::onDeactivate()
 {
   // станем неактивными
+  validate();
   Settings.setStepsPerRevolution(stepsPerRevolution);
   wantRedrawStepsPerRevolution = false;
   
@@ -952,6 +985,27 @@ void MotorSetupScreen::onEvent(Event event, void* param)
         
       }
       break; // RotationRequested
+
+      case KeyboardEvent:
+      {
+          int8_t keyCode = *((int8_t*) param);
+          if(keyCode == DELETE_KEY)
+            stepsPerRevolution = 0;
+          else
+          if(keyCode == BACKSPACE_KEY)
+          {
+              stepsPerRevolution /= 10;
+          }
+          else
+          {
+            stepsPerRevolution *= 10;
+            stepsPerRevolution += keyCode;
+            validate();
+          }
+          wantRedrawStepsPerRevolution = true;
+          Screen.notifyAction(this); // говорим, что мы отработали чего-то, т.е. на экране происходит действия.
+      }
+      break; // KeyboardEvent      
             
       case EncoderPositionChanged: // смена позиции энкодера
       {
@@ -961,11 +1015,7 @@ void MotorSetupScreen::onEvent(Event event, void* param)
               Screen.notifyAction(this); // говорим, что мы отработали чего-то, т.е. на экране происходит действия.
               stepsPerRevolution += changes;
               
-              if(stepsPerRevolution < 1)
-                stepsPerRevolution = 1;
-                
-              if(stepsPerRevolution > 10000)
-                stepsPerRevolution = 100;
+              validate();
                 
               wantRedrawStepsPerRevolution = true;
         }
@@ -1093,9 +1143,21 @@ MicrostepScreen::~MicrostepScreen()
 {
 }
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+void MicrostepScreen::validate()
+{
+  uint16_t before = setting;
+
+  if(!(setting == 1 || setting == 2 || setting == 4 || setting == 8 || setting == 16 || setting == 32 || setting == 64))
+    setting = 1;
+    
+  if(before != setting)
+    wantRedrawSetting = true;
+}
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 void MicrostepScreen::onDeactivate()
 {
   // станем неактивными
+  validate();
   Settings.setDivider(setting);
   wantRedrawSetting = false;
   
@@ -1131,6 +1193,12 @@ void MicrostepScreen::onEvent(Event event, void* param)
         
       }
       break; // RotationRequested
+
+      case KeyboardEvent:
+      {
+       
+      }
+      break; // KeyboardEvent      
             
       case EncoderPositionChanged: // смена позиции энкодера
       {
@@ -1302,34 +1370,6 @@ int MicrostepScreen::drawSetting(HalDC* hal, int top)
    hal->setBackColor(SCREEN_BACK_COLOR);
    hal->print(strToDraw.c_str(),left,top);   
   
-
-/*
-    
-   String strToDraw;
-   strToDraw = setting;
-   int len = hal->print(strToDraw.c_str(),0,0,0,true);
-   int left = (screenWidth - fontWidth*len)/2;
-
-   if(lastSettingLength && lastSettingLength != len)
-   {
-    if(len < lastSettingLength)
-    {
-      // разрядность уменьшилась, надо пересчитать, какие прямоугольники заливать, поскольку мы рисуем по центру
-      int diff = lastSettingLength - len;
-      int freeWidth = diff*fontWidth;
-      
-      hal->setColor(SCREEN_BACK_COLOR);
-      hal->fillRect(left - freeWidth/2, top, left + freeWidth/2,top+fontHeight);
-      hal->fillRect(left + len*fontWidth, top, left + len*fontWidth + freeWidth/2,top+fontHeight);
-    }
-   }
-
-   lastSettingLength = len;
-   
-   hal->setColor(VGA_BLUE);
-   hal->setBackColor(SCREEN_BACK_COLOR);
-   hal->print(strToDraw.c_str(),left,top);   
-*/
    return (top + fontHeight + 10);
 }
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -1354,9 +1394,35 @@ StepsScreen::~StepsScreen()
 {
 }
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+void StepsScreen::validate()
+{
+  uint16_t speedBefore = rotationSpeed;
+
+  if(rotationSpeed < 1)
+    rotationSpeed = 1;
+  if(rotationSpeed > 100)
+    rotationSpeed = 100;
+  
+  if(speedBefore != rotationSpeed)
+    wantRedrawRotationSpeed = true;
+
+
+  uint16_t stepsBefore = steps;
+  
+  if(steps < 1)
+      steps = 1;
+      
+  if(steps > 999)
+    steps = 999;
+
+  if(stepsBefore != steps)
+    wantRedrawSteps = true;
+}
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 void StepsScreen::onDeactivate()
 {
   // станем неактивными
+  validate();
   Settings.setRotationSpeed(rotationSpeed);
   Settings.setSteps(steps);
   wantRedrawRotationSpeed = false;
@@ -1416,6 +1482,52 @@ void StepsScreen::onEvent(Event event, void* param)
         
       }
       break; // RotationRequested
+
+    case KeyboardEvent:
+      {
+        if(selectedMenu == 0 || selectedMenu == 1)
+        {
+          int8_t keyCode = *((int8_t*) param);
+          
+          if(selectedMenu == 0) // шаги
+          {
+            if(keyCode == DELETE_KEY)
+              steps = 0;
+            else
+            if(keyCode == BACKSPACE_KEY)
+            {
+                steps /= 10;
+            }
+            else
+            {
+              steps *= 10;
+              steps += keyCode;
+              validate();
+            }
+            wantRedrawSteps = true;
+          }
+          else // скорость
+          {
+            if(keyCode == DELETE_KEY)
+              rotationSpeed = 0;
+            else
+            if(keyCode == BACKSPACE_KEY)
+            {
+                rotationSpeed /= 10;
+            }
+            else
+            {
+              rotationSpeed *= 10;
+              rotationSpeed += keyCode;
+              validate();
+            }
+            wantRedrawRotationSpeed = true;            
+          }
+          Screen.notifyAction(this); // говорим, что мы отработали чего-то, т.е. на экране происходит действия.
+          
+        } // selectedMenu == 0 || selectedMenu == 1
+      }
+      break; // KeyboardEvent      
             
       case EncoderPositionChanged: // смена позиции энкодера
       {
@@ -1428,12 +1540,7 @@ void StepsScreen::onEvent(Event event, void* param)
               case 0: // выбрано кол-во шагов
               {
                 steps += changes;
-                if(steps < 1)
-                  steps = 1;
-                  
-                if(steps > 999)
-                  steps = 999;
-
+                validate();
                 wantRedrawSteps = true;
               }
               break;
@@ -1441,13 +1548,8 @@ void StepsScreen::onEvent(Event event, void* param)
               case 1: // выбрана скорость
               {
                  rotationSpeed += changes;
-              
-                if(rotationSpeed < 1)
-                  rotationSpeed = 1;
-                if(rotationSpeed > 100)
-                  rotationSpeed = 100;
-                  
-                wantRedrawRotationSpeed = true;
+                 validate();                  
+                 wantRedrawRotationSpeed = true;
               }
               break;
 
@@ -1490,6 +1592,8 @@ void StepsScreen::onEvent(Event event, void* param)
             case 1: wantRedrawRotationSpeed = true; break;
             case 2: wantRedrawBackButton = true; break;
           }
+
+        validate();
         
         Screen.notifyAction(this); // говорим, что мы отработали чего-то, т.е. на экране происходит действия.
       }
@@ -1645,7 +1749,7 @@ int StepsScreen::drawRotationSpeed(HalDC* hal, int top)
    {
       if(len < lastRotationSpeedLength) // уменьшили разрядность числа
       {
-        hal->setColor(selectedMenu == 1 ? SCREEN_BACK_COLOR : VGA_BLUE);
+        hal->setColor(SCREEN_BACK_COLOR);
         int offset = left-fontWidth*(lastRotationSpeedLength-len);
         hal->fillRect(offset, top, offset + fontWidth*(lastRotationSpeedLength-len),top+fontHeight);
       }
@@ -1676,9 +1780,9 @@ void StepsScreen::drawSteps(HalDC* hal, int top)
    {    
       if(len < lastStepsLength) // уменьшили разрядность числа
       {
-        hal->setColor(selectedMenu == 0 ? SCREEN_BACK_COLOR : VGA_BLUE);
-        int offset = left+fontWidth*(3 - (lastStepsLength-len));
-        hal->fillRect(offset, top, offset + fontWidth*(3 - (lastStepsLength-len)),top+fontHeight);
+        hal->setColor(SCREEN_BACK_COLOR);
+        int offset = left+fontWidth*len;
+        hal->fillRect(offset, top, offset + fontWidth*(lastStepsLength-len),top+fontHeight);
       }
    }
 
@@ -1693,10 +1797,16 @@ void StepsScreen::drawSteps(HalDC* hal, int top)
 void StepsScreen::startSteps(bool ccw)
 {
   if(Settings.getRotationSpeed() != rotationSpeed)
+  {
+    validate();
     Settings.setRotationSpeed(rotationSpeed);
+  }
 
   if(Settings.getSteps() != steps)
+  {
+    validate();
     Settings.setSteps(steps);
+  }
     
   isInWork = true;
 
@@ -1773,9 +1883,34 @@ ReductionScreen::~ReductionScreen()
 {
 }
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+void ReductionScreen::validate()
+{
+  uint16_t mBefore = reductionMotor;
+
+ if(reductionMotor < 1)
+    reductionMotor = 1;
+    
+  if(reductionMotor > 100)
+    reductionMotor = 100;
+                    
+  if(mBefore != reductionMotor)
+    wantRedrawReductionMotor = true;
+
+  uint16_t gBefore = reductionGear;
+
+  if(reductionGear < 1)
+    reductionGear = 1;
+  if(reductionGear > 100)
+    reductionGear = 100;
+  
+  if(gBefore != reductionGear)
+    wantRedrawReductionGear = true;
+}
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 void ReductionScreen::onDeactivate()
 {
   // станем неактивными
+  validate();
   Settings.setMotorReduction(reductionMotor);
   Settings.setGearReduction(reductionGear);
   
@@ -1815,6 +1950,56 @@ void ReductionScreen::onEvent(Event event, void* param)
       {
       }
       break; // RotationRequested
+
+      case KeyboardEvent:
+      {
+        if(selectedMenu == 0 || selectedMenu == 1)
+        {
+          int8_t keyCode = *((int8_t*) param);
+
+          if(selectedMenu == 0) // reductionMotor
+          {
+            if(keyCode == DELETE_KEY)
+              reductionMotor = 0;
+            else
+            if(keyCode == BACKSPACE_KEY)
+            {
+                reductionMotor /= 10;
+            }
+            else
+            {
+              reductionMotor *= 10;
+              reductionMotor += keyCode;
+              validate();
+            }
+            wantRedrawReductionMotor = true;
+            
+          } // selectedMenu == 0
+          else // reductionGear
+          {
+            
+            if(keyCode == DELETE_KEY)
+              reductionGear = 0;
+            else
+            if(keyCode == BACKSPACE_KEY)
+            {
+                reductionGear /= 10;
+            }
+            else
+            {
+              reductionGear *= 10;
+              reductionGear += keyCode;
+              validate();
+            }
+            wantRedrawReductionGear = true;
+            
+          } // else
+          
+          Screen.notifyAction(this); // говорим, что мы отработали чего-то, т.е. на экране происходит действия.
+          
+        } // selectedMenu == 0 || selectedMenu == 1
+      }
+      break; // KeyboardEvent
             
       case EncoderPositionChanged: // смена позиции энкодера
       {
@@ -1827,12 +2012,7 @@ void ReductionScreen::onEvent(Event event, void* param)
               case 0: // выбран первый делитель
               {
                 reductionMotor += changes;
-                if(reductionMotor < 1)
-                  reductionMotor = 1;
-                  
-                if(reductionMotor > 100)
-                  reductionMotor = 100;
-
+                validate();
                 wantRedrawReductionMotor = true;
               }
               break;
@@ -1840,12 +2020,7 @@ void ReductionScreen::onEvent(Event event, void* param)
               case 1: // выбран второй делитель
               {
                  reductionGear += changes;
-              
-                if(reductionGear < 1)
-                  reductionGear = 1;
-                if(reductionGear > 100)
-                  reductionGear = 100;
-                  
+                 validate();                  
                 wantRedrawReductionGear = true;
               }
               break;
@@ -1885,7 +2060,8 @@ void ReductionScreen::onEvent(Event event, void* param)
             case 1: wantRedrawReductionGear = true; break;
             case 2: wantRedrawBackButton = true; break;
           }
-        
+          
+        validate();
         Screen.notifyAction(this); // говорим, что мы отработали чего-то, т.е. на экране происходит действия.
       }
       break; // EncoderButtonClicked
@@ -1994,7 +2170,7 @@ void ReductionScreen::drawReductions(HalDC* hal, int top)
      {    
         if(len < lastReductionMotorLength) // уменьшили разрядность числа
         {
-          hal->setColor(selectedMenu == 0 ? SCREEN_BACK_COLOR : VGA_BLUE);
+          hal->setColor(SCREEN_BACK_COLOR);
           int offset = left - fontWidth*(lastReductionMotorLength-len);
           hal->fillRect(offset, top, offset + fontWidth*(lastReductionMotorLength-len),top+fontHeight);
         }
@@ -2021,7 +2197,7 @@ void ReductionScreen::drawReductions(HalDC* hal, int top)
    {
       if(len < lastReductionGearLength) // уменьшили разрядность числа
       {
-        hal->setColor(selectedMenu == 1 ? SCREEN_BACK_COLOR : VGA_BLUE);
+        hal->setColor(SCREEN_BACK_COLOR);
         int offset = left + fontWidth*len;
         hal->fillRect(offset, top, offset + fontWidth*(lastReductionGearLength-len),top+fontHeight);
       }
@@ -2035,11 +2211,6 @@ void ReductionScreen::drawReductions(HalDC* hal, int top)
     
   } // if(wantRedrawReductionGear)
 }
-//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 

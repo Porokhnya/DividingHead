@@ -14,6 +14,13 @@ void EventsClass::raise(EventSender s, Event evt, void* param)
   #ifdef _DEBUG
     switch(evt)
     {
+      case KeyboardEvent:
+      {
+        int8_t keyCode = *((int8_t*) param);
+        DBG(F("Key entered: "));
+        DBGLN(keyCode);
+      }
+      break;
       case StepperWorkDone: // мотор закончил работу
       {
         DBGLN(F("Stepper switched to idle mode!"));

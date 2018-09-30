@@ -31,7 +31,7 @@ void drawBackButton(HalDC* hal, bool active)
   int fontHeight = hal->getFontHeight(SCREEN_BIG_FONT);
 
   String strToDraw;
-  strToDraw = F("< НАЗАД");
+  strToDraw = TXT_BACK_BUTTON;
   
   int len = hal->print(strToDraw.c_str(),0,0,0,true);
   hal->print(strToDraw.c_str(),(screenWidth - fontWidth*len)/2,top + (BUTTON_HEIGHT-fontHeight)/2);  
@@ -220,22 +220,22 @@ void MainScreen::doSetup(HalDC* hal)
   int buttonWidth = screenWidth - BUTTON_X_OFFSET*2;
 
   int top = BUTTON_Y_OFFSET;
-  int btn = buttons->addButton(BUTTON_X_OFFSET,top,buttonWidth,BUTTON_HEIGHT,"ДЕЛЕНИЕ ПО ГРАДУСАМ");
+  int btn = buttons->addButton(BUTTON_X_OFFSET,top,buttonWidth,BUTTON_HEIGHT,TXT_DEGREE_DIVIDE_BUTTON);
 
   buttonList.push_back(btn);
 
   top += BUTTON_HEIGHT + BUTTON_Y_OFFSET;
-  btn = buttons->addButton(BUTTON_X_OFFSET,top,buttonWidth,BUTTON_HEIGHT,"ДЕЛЕНИЕ ПО ЧАСТЯМ");
+  btn = buttons->addButton(BUTTON_X_OFFSET,top,buttonWidth,BUTTON_HEIGHT,TXT_PART_DIVIDE_BUTTON);
 
   buttonList.push_back(btn);
 
   top += BUTTON_HEIGHT + BUTTON_Y_OFFSET;
-  btn = buttons->addButton(BUTTON_X_OFFSET,top,buttonWidth,BUTTON_HEIGHT,"ШАГАНИЕ");
+  btn = buttons->addButton(BUTTON_X_OFFSET,top,buttonWidth,BUTTON_HEIGHT,TXT_STEP_BUTTON);
 
   buttonList.push_back(btn);
 
   top += BUTTON_HEIGHT + BUTTON_Y_OFFSET;
-  btn = buttons->addButton(BUTTON_X_OFFSET,top,buttonWidth,BUTTON_HEIGHT,"ВРАЩЕНИЕ");
+  btn = buttons->addButton(BUTTON_X_OFFSET,top,buttonWidth,BUTTON_HEIGHT,TXT_ROTATE_BUTTON);
 
   buttonList.push_back(btn);
 
@@ -244,7 +244,7 @@ void MainScreen::doSetup(HalDC* hal)
 
 
   top = screenHeight - BUTTON_HEIGHT - BUTTON_Y_OFFSET;
-  btn = buttons->addButton(BUTTON_X_OFFSET,top,buttonWidth,BUTTON_HEIGHT,"НАСТРОЙКИ");
+  btn = buttons->addButton(BUTTON_X_OFFSET,top,buttonWidth,BUTTON_HEIGHT,TXT_SETTINGS_BUTTON);
 
   buttonList.push_back(btn);
 
@@ -421,17 +421,17 @@ void TuneScreen::doSetup(HalDC* hal)
   int buttonWidth = screenWidth - BUTTON_X_OFFSET*2;
 
   int top = BUTTON_Y_OFFSET;
-  int btn = buttons->addButton(BUTTON_X_OFFSET,top,buttonWidth,BUTTON_HEIGHT,"ДВИГАТЕЛЬ"); // шагов на оборот
+  int btn = buttons->addButton(BUTTON_X_OFFSET,top,buttonWidth,BUTTON_HEIGHT,TXT_MOTOR_BUTTON); // шагов на оборот
 
   buttonList.push_back(btn);
 
   top += BUTTON_HEIGHT + BUTTON_Y_OFFSET;
-  btn = buttons->addButton(BUTTON_X_OFFSET,top,buttonWidth,BUTTON_HEIGHT,"ДЕЛИТЕЛЬ ШАГА"); // делитель режима шага
+  btn = buttons->addButton(BUTTON_X_OFFSET,top,buttonWidth,BUTTON_HEIGHT,TXT_MICROSTEP_DIVIDER_BUTTON); // делитель режима шага
 
   buttonList.push_back(btn);
 
   top += BUTTON_HEIGHT + BUTTON_Y_OFFSET;
-  btn = buttons->addButton(BUTTON_X_OFFSET,top,buttonWidth,BUTTON_HEIGHT,"ПЕРЕДАТОЧНОЕ ОТНОШЕНИЕ"); // настройки редукции
+  btn = buttons->addButton(BUTTON_X_OFFSET,top,buttonWidth,BUTTON_HEIGHT,TXT_REDUCTION_BUTTON); // настройки редукции
 
   buttonList.push_back(btn);
 
@@ -439,7 +439,7 @@ void TuneScreen::doSetup(HalDC* hal)
 
 
   top = screenHeight - BUTTON_HEIGHT - BUTTON_Y_OFFSET;
-  btn = buttons->addButton(BUTTON_X_OFFSET,top,buttonWidth,BUTTON_HEIGHT,"< НАЗАД");
+  btn = buttons->addButton(BUTTON_X_OFFSET,top,buttonWidth,BUTTON_HEIGHT,TXT_BACK_BUTTON);
 
   buttonList.push_back(btn);
 
@@ -560,12 +560,6 @@ void SplashScreen::doDraw(HalDC* hal)
    strToDraw = F("spywarrior@gmail.com");
    len = hal->print(strToDraw.c_str(),0,0,0,true);
    hal->print(strToDraw.c_str(),(screenWidth - fontWidth*len)/2,top);
-
-   /*
-   hal->setColor(VGA_RED);
-   hal->setFont(SevenSegNumFontMDS);
-   hal->print("1234",5,5);
-   */
    
    hal->updateDisplay();
 
@@ -862,7 +856,7 @@ void RotationScreen::drawGUI(HalDC* hal)
   int top = 20;
   int vSpacing = 10;
    
-   String strToDraw = F("СКОРОСТЬ ВРАЩЕНИЯ");
+   String strToDraw = TXT_ROTATION_SCREEN_CAPTION;
    int len = hal->print(strToDraw.c_str(),0,0,0,true);
    int left = (screenWidth - fontWidth*len)/2;
    hal->print(strToDraw.c_str(),left,top);
@@ -877,13 +871,13 @@ void RotationScreen::drawGUI(HalDC* hal)
    hal->setColor(SCREEN_TEXT_COLOR);  
 
 
-   strToDraw = F("Зажатие < и > - работа.");
+   strToDraw = TXT_ROTATION_SCREEN_HINT_1;
    len = hal->print(strToDraw.c_str(),0,0,0,true);
    left = (screenWidth - fontWidth*len)/2;
    hal->print(strToDraw.c_str(),left,top);
    top += fontHeight + vSpacing;
 
-   strToDraw = F("Отпускание < и > - стоп.");
+   strToDraw = TXT_ROTATION_SCREEN_HINT_2;
    len = hal->print(strToDraw.c_str(),0,0,0,true);
    left = (screenWidth - fontWidth*len)/2;
    hal->print(strToDraw.c_str(),left,top);
@@ -1088,7 +1082,7 @@ void MotorSetupScreen::drawGUI(HalDC* hal)
 
   int top = 20;
    
-   String strToDraw = F("ШАГОВ НА ОБОРОТ");
+   String strToDraw = TXT_MOTOR_SETUP_SCREEN_CAPTION;
    int len = hal->print(strToDraw.c_str(),0,0,0,true);
    int left = (screenWidth - fontWidth*len)/2;
    hal->print(strToDraw.c_str(),left,top);
@@ -1315,7 +1309,7 @@ void MicrostepScreen::drawGUI(HalDC* hal)
 
   int top = 20;
    
-   String strToDraw = F("ДЕЛИТЕЛЬ ШАГА");
+   String strToDraw = TXT_MICROSTEP_SCREEN_CAPTION;
    int len = hal->print(strToDraw.c_str(),0,0,0,true);
    int left = (screenWidth - fontWidth*len)/2;
    hal->print(strToDraw.c_str(),left,top);
@@ -1700,16 +1694,16 @@ void StepsScreen::drawGUI(HalDC* hal)
   int top = 20;
   int vSpacing = 10;
    
-   String strToDraw = F("РЕЖИМ ШАГАНИЯ");
+   String strToDraw = TXT_STEPS_SCREEN_CAPTION;
    int len = hal->print(strToDraw.c_str(),0,0,0,true);
    int left = (screenWidth - fontWidth*len)/2;
    hal->print(strToDraw.c_str(),left,top);
 
 
    hal->setColor(VGA_RED);
-   strToDraw = F("шаги");
+   strToDraw = TXT_STEPS_SCREEN_STEPS_LABEL;
    hal->print(strToDraw.c_str(),40,80-fontHeight-6);
-   strToDraw = F("скорость");
+   strToDraw = TXT_STEPS_SCREEN_SPEED_LABEL;
    len = hal->print(strToDraw.c_str(),0,0,0,true);
    hal->print(strToDraw.c_str(),screenWidth - 40 - len*fontWidth,80-fontHeight-6);
 
@@ -1724,13 +1718,13 @@ void StepsScreen::drawGUI(HalDC* hal)
    hal->setColor(SCREEN_TEXT_COLOR);  
 
 
-   strToDraw = F("Клик < и > - работа.");
+   strToDraw = TXT_STEPS_SCREEN_HINT_1;
    len = hal->print(strToDraw.c_str(),0,0,0,true);
    left = (screenWidth - fontWidth*len)/2;
    hal->print(strToDraw.c_str(),left,top);
    top += fontHeight + vSpacing;
 
-   strToDraw = F("Повторно < и > - стоп.");
+   strToDraw = TXT_STEPS_SCREEN_HINT_2;
    len = hal->print(strToDraw.c_str(),0,0,0,true);
    left = (screenWidth - fontWidth*len)/2;
    hal->print(strToDraw.c_str(),left,top);
@@ -2134,7 +2128,7 @@ void ReductionScreen::drawGUI(HalDC* hal)
 
   int top = 20;
    
-   String strToDraw = F("ПЕРЕДАТОЧНОЕ ОТНОШЕНИЕ");
+   String strToDraw = TXT_REDUCTION_SCREEN_CAPTION;
    int len = hal->print(strToDraw.c_str(),0,0,0,true);
    int left = (screenWidth - fontWidth*len)/2;
    hal->print(strToDraw.c_str(),left,top);

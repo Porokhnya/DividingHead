@@ -116,8 +116,10 @@ void MainScreen::onEvent(Event event, void* param)
       }
       break; // StepsRequested
 
+      #ifdef USE_KEYBOARD
       case KeyboardEvent:
       break;
+      #endif
       
       case StepperWorkDone: // движок остановился
       {
@@ -314,8 +316,10 @@ void TuneScreen::onEvent(Event event, void* param)
 
     switch(event)
     {
+      #ifdef USE_KEYBOARD
       case KeyboardEvent:
       break;
+      #endif
             
       case StepsRequested: // запросили шагать на определённое кол-во шагов
       {
@@ -705,6 +709,7 @@ void RotationScreen::onEvent(Event event, void* param)
       }
       break; // RotationRequested
 
+      #ifdef USE_KEYBOARD
       case KeyboardEvent:
       {
           int8_t keyCode = *((int8_t*) param);
@@ -725,6 +730,7 @@ void RotationScreen::onEvent(Event event, void* param)
           Screen.notifyAction(this); // говорим, что мы отработали чего-то, т.е. на экране происходит действия.
       }
       break; // KeyboardEvent
+      #endif
             
       case EncoderPositionChanged: // смена позиции энкодера
       {
@@ -986,6 +992,7 @@ void MotorSetupScreen::onEvent(Event event, void* param)
       }
       break; // RotationRequested
 
+      #ifdef USE_KEYBOARD
       case KeyboardEvent:
       {
           int8_t keyCode = *((int8_t*) param);
@@ -1005,7 +1012,8 @@ void MotorSetupScreen::onEvent(Event event, void* param)
           wantRedrawStepsPerRevolution = true;
           Screen.notifyAction(this); // говорим, что мы отработали чего-то, т.е. на экране происходит действия.
       }
-      break; // KeyboardEvent      
+      break; // KeyboardEvent
+      #endif     
             
       case EncoderPositionChanged: // смена позиции энкодера
       {
@@ -1193,12 +1201,11 @@ void MicrostepScreen::onEvent(Event event, void* param)
         
       }
       break; // RotationRequested
-
+      
+      #ifdef USE_KEYBOARD
       case KeyboardEvent:
-      {
-       
-      }
       break; // KeyboardEvent      
+      #endif
             
       case EncoderPositionChanged: // смена позиции энкодера
       {
@@ -1483,7 +1490,8 @@ void StepsScreen::onEvent(Event event, void* param)
       }
       break; // RotationRequested
 
-    case KeyboardEvent:
+      #ifdef USE_KEYBOARD
+      case KeyboardEvent:
       {
         if(selectedMenu == 0 || selectedMenu == 1)
         {
@@ -1528,6 +1536,7 @@ void StepsScreen::onEvent(Event event, void* param)
         } // selectedMenu == 0 || selectedMenu == 1
       }
       break; // KeyboardEvent      
+      #endif
             
       case EncoderPositionChanged: // смена позиции энкодера
       {
@@ -1950,7 +1959,8 @@ void ReductionScreen::onEvent(Event event, void* param)
       {
       }
       break; // RotationRequested
-
+      
+      #ifdef USE_KEYBOARD
       case KeyboardEvent:
       {
         if(selectedMenu == 0 || selectedMenu == 1)
@@ -2000,6 +2010,7 @@ void ReductionScreen::onEvent(Event event, void* param)
         } // selectedMenu == 0 || selectedMenu == 1
       }
       break; // KeyboardEvent
+      #endif
             
       case EncoderPositionChanged: // смена позиции энкодера
       {

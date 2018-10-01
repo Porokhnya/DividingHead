@@ -178,7 +178,8 @@ void MainScreen::onEvent(Event event, void* param)
 
           case DIVIDE_PARTS_BUTTON:
           {
-            DBGLN(F("Divide by parts screen!"));     
+            DBGLN(F("Switch to divide by parts screen!"));     
+            Screen.switchToScreen(DivideByParts);
           }
           break;
 
@@ -2215,6 +2216,503 @@ void ReductionScreen::drawReductions(HalDC* hal, int top)
     hal->print(strToDraw.c_str(),left,top);          
     
   } // if(wantRedrawReductionGear)
+}
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+// DivideByPartsScreen
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+DivideByPartsScreen* DivideByParts = NULL;        
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+DivideByPartsScreen::DivideByPartsScreen() : AbstractHALScreen()
+{
+  DivideByParts = this;
+  
+  lastNumOfDivisionsLength = 0;
+  lastCurrentPositionLength = 0;
+
+  wantRedrawNumOfDivisions = false;
+  wantRedrawCurrentPosition = false;
+
+  isInWork = false;
+  wantDrawStepperStatus = false;
+  
+  totalNumOfDivisions = 1;
+  currentPosition = 0;
+  
+  isCWRotation = true;
+}
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+DivideByPartsScreen::~DivideByPartsScreen()
+{
+}
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+void DivideByPartsScreen::validate()
+{
+  uint8_t prevNumOfDivisions = totalNumOfDivisions;
+
+  if(totalNumOfDivisions < 1)
+    totalNumOfDivisions = 1;
+
+  if(totalNumOfDivisions > 999)
+    totalNumOfDivisions = 999;
+
+  if(prevNumOfDivisions != totalNumOfDivisions)
+    wantRedrawNumOfDivisions = true;
+ 
+}
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+void DivideByPartsScreen::onDeactivate()
+{
+  // станем неактивными
+  validate();
+  currentPosition = 0;
+  wantRedrawNumOfDivisions = false;
+  wantRedrawCurrentPosition = false;
+  isCWRotation = true;
+  
+  Settings.setNumOfDivisions(totalNumOfDivisions);
+
+}
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+void DivideByPartsScreen::onActivate()
+{
+  // мы активизируемся  
+  totalNumOfDivisions = Settings.getNumOfDivisions();
+  
+  bool w = !MotorController.isOnIdle();
+  if(w != isInWork)
+  {
+    isInWork = w;
+    wantDrawStepperStatus = true;
+  }
+
+  currentPosition = 0;
+  isCWRotation = true;
+  
+}
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+void DivideByPartsScreen::onEvent(Event event, void* param)
+{
+  if(!isActive())
+    return;  
+
+    switch(event)
+    {
+      case StepsRequested: // запросили шагать на определённое кол-во шагов
+      {
+        
+      }
+      break; // StepsRequested
+      
+      case StepperWorkDone: // движок остановился
+      {       
+        if(isInWork)
+        {
+          isInWork = false;
+          wantDrawStepperStatus = true;
+
+            DBGLN(F("ONE DIVISION DONE!"));
+            
+            // остановились нормально, надо изменить значение текущего положения
+            if(isCWRotation) // двигались по часовой
+            {
+              currentPosition++;
+
+              if(currentPosition == totalNumOfDivisions)
+                  currentPosition = 0;                              
+            }
+            else // двигались против часовой
+            {
+                if(currentPosition == 0)
+                  currentPosition = totalNumOfDivisions - 1;
+                else
+                  currentPosition--;
+            }
+          
+            wantRedrawCurrentPosition = true;
+
+        }
+      }
+      break; // StepperWorkDone
+
+      case RotationRequested: // запросили вращение
+      {
+        
+      }
+      break; // RotationRequested
+
+      #ifdef USE_KEYBOARD
+      case KeyboardEvent:
+      {
+        if(!isInWork)
+        {
+          int8_t keyCode = *((int8_t*) param);
+          
+            if(keyCode == DELETE_KEY)
+              totalNumOfDivisions = 0;
+            else
+            if(keyCode == BACKSPACE_KEY)
+            {
+                totalNumOfDivisions /= 10;
+            }
+            else
+            {
+              totalNumOfDivisions *= 10;
+              totalNumOfDivisions += keyCode;
+              validate();
+            }
+            
+            wantRedrawNumOfDivisions = true;
+
+            // сбрасываем стартовую позицию, поскольку значение кол-ва делений изменилось
+            currentPosition = 0;
+            wantRedrawCurrentPosition = true;
+          
+          Screen.notifyAction(this); // говорим, что мы отработали чего-то, т.е. на экране происходит действия.
+        } // if(!isInWork)
+      }
+      break; // KeyboardEvent      
+      #endif
+            
+      case EncoderPositionChanged: // смена позиции энкодера
+      {
+        if(!isInWork)
+        {
+            int changes = *((int*) param);
+            if(changes != 0)
+            {
+                Screen.notifyAction(this); // говорим, что мы отработали чего-то, т.е. на экране происходит действия.
+                
+                totalNumOfDivisions += changes;
+                validate();
+                wantRedrawNumOfDivisions = true;
+    
+                // сбрасываем стартовую позицию, поскольку значение кол-ва делений изменилось
+                currentPosition = 0;
+                wantRedrawCurrentPosition = true;
+                
+            }
+        } // if(!isInWork)
+      }
+      break; // EncoderPositionChanged
+
+      case EncoderButtonClicked: // кликнута кнопка энкодера
+      {             
+        Screen.notifyAction(this); // говорим, что мы отработали чего-то, т.е. на экране происходит действия.
+        validate();
+        
+        // переключаемся на стартовый экран
+        DBGLN(F("Back to main screen!"));
+        
+        if(isInWork) // перед переключением на другой экран принудительно останавливаем мотор!!!
+        {
+          stopSteps(true);
+        }
+          
+        Screen.switchToScreen(StartScreen);    
+        
+      }
+      break; // EncoderButtonClicked
+
+
+      case ButtonStateChanged: // состояние какой-либо кнопки изменилось
+      {
+        Screen.notifyAction(this); // говорим, что мы отработали чего-то, т.е. на экране происходит действия.
+        ButtonEventParam* p = (ButtonEventParam*) param;
+
+        if(p->state & BUTTON_CLICKED)
+        {
+          // кнопка кликнута
+          if(isInWork)
+          {
+            // работаем ещё, надо остановить мотор
+            DBGLN(F("Stop motor prematurely!!!"));
+
+            stopSteps(p->button == LEFT_BUTTON);
+            
+            // принудительно сбрасываем текущую позицию, т.к. нас остановили досрочно
+            currentPosition = 0;
+            wantRedrawCurrentPosition = true;
+            
+          }
+          else              
+          {
+            // режим простоя, запускаем шагание
+            validate();
+            startSteps(p->button == LEFT_BUTTON);
+          }
+          
+        } // if(p->state & BUTTON_CLICKED)   
+        
+        
+      }
+      break; // ButtonStateChanged
+      
+    } // switch    
+}
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+void DivideByPartsScreen::doSetup(HalDC* hal)
+{
+}
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+void DivideByPartsScreen::doUpdate(HalDC* hal)
+{
+  if(!isActive())
+    return;
+
+    if(isInWork)
+       Screen.notifyAction(this); // говорим, что мы отработали чего-то, т.е. на экране происходит действия.
+
+    if(wantRedrawNumOfDivisions)
+    {
+      wantRedrawNumOfDivisions = false;
+      drawNumOfDivisions(hal,80);
+    } // if
+
+    if(wantRedrawCurrentPosition)
+    {
+      wantRedrawCurrentPosition = false;
+      drawCurrentPosition(hal,80);
+    }
+
+    if(wantDrawStepperStatus)
+    {
+      wantDrawStepperStatus = false;
+      drawStepperStatus(hal,isInWork);
+    }
+
+}
+
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+void DivideByPartsScreen::doDraw(HalDC* hal)
+{
+   hal->clearScreen();
+
+   // тут отрисовка текущего состояния
+   drawGUI(hal);
+
+   hal->updateDisplay();
+}
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+void DivideByPartsScreen::drawGUI(HalDC* hal)
+{
+  int screenWidth = hal->getScreenWidth();
+   
+   hal->setFont(SCREEN_BIG_FONT);
+   int fontWidth = hal->getFontWidth(SCREEN_BIG_FONT);
+   int fontHeight = hal->getFontHeight(SCREEN_BIG_FONT);
+   hal->setBackColor(SCREEN_BACK_COLOR);
+   hal->setColor(SCREEN_TEXT_COLOR);  
+
+  int top = 20;
+  int vSpacing = 10;
+   
+   String strToDraw = TXT_PARTS_SCREEN_CAPTION;
+   int len = hal->print(strToDraw.c_str(),0,0,0,true);
+   int left = (screenWidth - fontWidth*len)/2;
+   hal->print(strToDraw.c_str(),left,top);
+
+
+   hal->setColor(VGA_RED);
+   strToDraw = TXT_PARTS_SCREEN_PARTS_LABEL;
+   hal->print(strToDraw.c_str(),40,80-fontHeight-6);
+   strToDraw = TXT_PARTS_SCREEN_CUR_PART_LABEL;
+   len = hal->print(strToDraw.c_str(),0,0,0,true);
+   hal->print(strToDraw.c_str(),screenWidth - 40 - len*fontWidth,80-fontHeight-6);
+
+   drawNumOfDivisions(hal,80);
+   top =  drawCurrentPosition(hal,80);
+   
+   top += 20;
+
+   hal->setFont(SCREEN_BIG_FONT);
+   fontWidth = hal->getFontWidth(SCREEN_BIG_FONT);
+   fontHeight = hal->getFontHeight(SCREEN_BIG_FONT);
+   hal->setBackColor(SCREEN_BACK_COLOR);
+   hal->setColor(SCREEN_TEXT_COLOR);  
+
+   strToDraw = TXT_PARTS_SCREEN_HINT_1;
+   len = hal->print(strToDraw.c_str(),0,0,0,true);
+   left = (screenWidth - fontWidth*len)/2;
+   hal->print(strToDraw.c_str(),left,top);
+   top += fontHeight + vSpacing;
+
+   strToDraw = TXT_PARTS_SCREEN_HINT_2;
+   len = hal->print(strToDraw.c_str(),0,0,0,true);
+   left = (screenWidth - fontWidth*len)/2;
+   hal->print(strToDraw.c_str(),left,top);
+
+   drawBackButton(hal,true);
+   drawStepperStatus(hal,isInWork);
+   
+}
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+int DivideByPartsScreen::drawCurrentPosition(HalDC* hal, int top)
+{
+   int screenWidth = hal->getScreenWidth();
+   hal->setFont(SevenSeg_XXXL_Num);
+   int fontWidth = hal->getFontWidth(SevenSeg_XXXL_Num);
+   int fontHeight = hal->getFontHeight(SevenSeg_XXXL_Num);
+
+    
+   String strToDraw;
+   strToDraw = (currentPosition+1);
+   int len = hal->print(strToDraw.c_str(),0,0,0,true);
+   int left = (screenWidth - fontWidth*len) - 40;
+
+   if(lastCurrentPositionLength && lastCurrentPositionLength != len)
+   {
+      if(len < lastCurrentPositionLength) // уменьшили разрядность числа
+      {
+        hal->setColor(SCREEN_BACK_COLOR);
+        int offset = left-fontWidth*(lastCurrentPositionLength-len);
+        hal->fillRect(offset, top, offset + fontWidth*(lastCurrentPositionLength-len),top+fontHeight);
+      }
+   }
+
+   lastCurrentPositionLength = len;
+   
+   hal->setColor(VGA_BLUE);
+   hal->setBackColor(SCREEN_BACK_COLOR);
+   hal->print(strToDraw.c_str(),left,top);   
+
+   return (top + fontHeight + 10);
+}
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+void DivideByPartsScreen::drawNumOfDivisions(HalDC* hal, int top)
+{
+   hal->setFont(SevenSeg_XXXL_Num);
+   int fontWidth = hal->getFontWidth(SevenSeg_XXXL_Num);
+   int fontHeight = hal->getFontHeight(SevenSeg_XXXL_Num);
+
+    
+   String strToDraw;
+   strToDraw = totalNumOfDivisions;
+   int len = hal->print(strToDraw.c_str(),0,0,0,true);
+   int left = 40;
+
+   if(lastNumOfDivisionsLength && lastNumOfDivisionsLength != len)
+   {    
+      if(len < lastNumOfDivisionsLength) // уменьшили разрядность числа
+      {
+        hal->setColor(SCREEN_BACK_COLOR);
+        int offset = left+fontWidth*len;
+        hal->fillRect(offset, top, offset + fontWidth*(lastNumOfDivisionsLength-len),top+fontHeight);
+      }
+   }
+
+   lastNumOfDivisionsLength = len;
+   
+   hal->setColor(VGA_BLUE);
+   hal->setBackColor(SCREEN_BACK_COLOR);
+   hal->print(strToDraw.c_str(),left,top);   
+
+}
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+void DivideByPartsScreen::startSteps(bool ccw)
+{
+  if(Settings.getNumOfDivisions() != uint16_t(totalNumOfDivisions))
+  {
+    validate();
+    Settings.setNumOfDivisions(totalNumOfDivisions);
+  }
+  
+  isInWork = true;
+  isCWRotation = !ccw;
+
+  int32_t stepsComputed = 0;
+  float stepsPerRevolution = MotorController.getStepsPerRevolution();
+  float stepsPerDivision = stepsPerRevolution / totalNumOfDivisions;
+
+  DBG(F("Steps per REV: "));
+  DBGLN(stepsPerRevolution);
+
+  DBG(F("Steps per DIV: "));
+  DBGLN(stepsPerDivision);
+
+  if(!ccw) // движемся по часовой
+  {
+        
+    int currentStepsCount = currentPosition * stepsPerDivision;
+    int nextStepsCount = (currentPosition + 1.00)  * stepsPerDivision;
+    
+    stepsComputed = (nextStepsCount - currentStepsCount);
+    
+  }
+  else // движемся против часовой
+  {
+      if(currentPosition == 0)
+      {
+        int currentStepsCount = stepsPerRevolution;
+        int nextStepsCount = stepsPerDivision * (totalNumOfDivisions - 1.00);
+        
+        stepsComputed = (currentStepsCount - nextStepsCount);        
+      }
+      else
+      {
+        int currentStepsCount = currentPosition * stepsPerDivision;
+        int nextStepsCount = (currentPosition - 1)  * stepsPerDivision;
+        
+        stepsComputed = (currentStepsCount - nextStepsCount);
+        
+      }
+    
+  } // else
+
+  DBG(F("Steps computed for current DIV: "));
+  DBGLN(stepsComputed);
+
+
+  StepsEventParam rr;
+  rr.start = true;
+  rr.ccw = ccw;
+  rr.speed = Settings.getRotationSpeed();
+  rr.steps = stepsComputed;
+  
+  #ifdef _DEBUG
+  if(ccw)
+  {
+    DBGLN(F("START STEPS CCW !"));
+  }
+  else
+  {
+    DBGLN(F("START STEPS CW !"));
+    
+  }
+  #endif
+
+  Events.raise(this,StepsRequested, &rr);
+  wantDrawStepperStatus = true;
+
+}
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+void DivideByPartsScreen::stopSteps(bool ccw)
+{
+  if(!isInWork)
+    return;
+    
+  isInWork = false;    
+
+  StepsEventParam rr;
+  rr.start = false;
+  rr.ccw = ccw;
+  rr.speed = 0;
+  rr.steps = 0;  
+
+  #ifdef _DEBUG
+  if(ccw)
+  {
+    DBGLN(F("STOP STEPS CCW !"));
+  }
+  else
+  {
+    DBGLN(F("STOP STEPS CW !"));
+    
+  }
+  #endif
+
+  Events.raise(this,StepsRequested, &rr);
+  wantDrawStepperStatus = true;
+
 }
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 

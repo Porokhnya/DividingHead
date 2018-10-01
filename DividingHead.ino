@@ -164,6 +164,10 @@ void setup()
   Screen.addScreen(StepsScreen::create()); // добавляем экран шагания
   DBGLN(F("Steps screen added.")); 
 
+  DBGLN(F("Add divide by parts screen...")); 
+  Screen.addScreen(DivideByPartsScreen::create()); // добавляем экран деления по частям
+  DBGLN(F("Divide by parts screen added.")); 
+
   DBGLN(F("Add settings screen...")); 
   Screen.addScreen(TuneScreen::create()); // добавляем экран настроек
   DBGLN(F("Settings screen added.")); 

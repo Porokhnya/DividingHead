@@ -333,4 +333,55 @@ private:
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 extern StepsScreen* Steps;
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+class DivideByPartsScreen : public AbstractHALScreen
+{
+  public:
+
+  static AbstractHALScreen* create()
+  {
+    return new DivideByPartsScreen();
+  }
+  
+   virtual void onActivate();
+   virtual void onDeactivate();
+
+   virtual void onEvent(Event event, void* param);
+
+
+protected:
+  
+    virtual void doSetup(HalDC* hal);
+    virtual void doUpdate(HalDC* hal);
+    virtual void doDraw(HalDC* hal);
+
+private:
+    DivideByPartsScreen();
+    ~DivideByPartsScreen();
+
+     int16_t totalNumOfDivisions;
+     int16_t currentPosition;
+     
+     bool wantRedrawNumOfDivisions, wantRedrawCurrentPosition;
+     int lastNumOfDivisionsLength, lastCurrentPositionLength;
+     
+     
+     void drawGUI(HalDC* hal);
+     
+     bool isInWork;
+     bool isCWRotation;
+
+     bool wantDrawStepperStatus;
+     
+     void drawNumOfDivisions(HalDC* hal, int top);
+     int drawCurrentPosition(HalDC* hal, int top);
+
+     void startSteps(bool ccw);
+     void stopSteps(bool ccw);
+
+     void validate();
+  
+};
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+extern DivideByPartsScreen* DivideByParts;
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 

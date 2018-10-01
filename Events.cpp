@@ -78,7 +78,8 @@ void EventsClass::raise(EventSender s, Event evt, void* param)
         }
 
         DBG(F(", speed="));
-        DBGLN(p->speed);
+        DBG(p->speed);
+        DBGLN(F("%"));
       }
       break; // RotationRequested
 
@@ -108,7 +109,7 @@ void EventsClass::raise(EventSender s, Event evt, void* param)
         DBG(F(", speed="));
         DBG(p->speed);        
 
-        DBG(F(", steps="));
+        DBG(F("%, steps="));
         DBGLN(p->steps);        
         
       }

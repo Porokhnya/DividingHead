@@ -65,6 +65,8 @@ class SettingsClass
     uint16_t getSteps();
     void setSteps(uint16_t value);
     
+    uint16_t getNumOfDivisions();
+    void setNumOfDivisions(uint16_t value);
 
   private:
 

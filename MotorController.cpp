@@ -22,7 +22,12 @@ MotorControllerClass::MotorControllerClass()
 }
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 void MotorControllerClass::init()
-{  
+{ 
+  #ifdef USE_STEPPER_RUN_DIODE
+    pinMode(STEPPER_RUN_DIODE_PIN,OUTPUT);
+    digitalWrite(STEPPER_RUN_DIODE_PIN,!STEPPER_RUN_DIODE_ON);
+  #endif 
+  
   Events.subscribe(this);
 
   Timer1.initialize(computeTimerInterval(Settings.getRotationSpeed()));  // инициализация таймера 1
@@ -79,6 +84,10 @@ void MotorControllerClass::stop()
   DBGLN(F("STOP STEPPER!!!"));
   remainingSteps = driver->stepsRemaining();
   driver->stop();
+
+  #ifdef USE_STEPPER_RUN_DIODE
+    digitalWrite(STEPPER_RUN_DIODE_PIN, !STEPPER_RUN_DIODE_ON);
+  #endif
 }
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 void MotorControllerClass::rotate()
@@ -89,7 +98,7 @@ void MotorControllerClass::rotate()
     steps = -steps;
 
   remainingSteps = 0;
-  driver->step(steps);
+  driver->step(steps);  
 }
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 void MotorControllerClass::onEvent(Event event, void* param)
@@ -144,6 +153,10 @@ void MotorControllerClass::onEvent(Event event, void* param)
 
           remainingSteps = 0;
           driver->step(steps);
+
+          #ifdef USE_STEPPER_RUN_DIODE
+            digitalWrite(STEPPER_RUN_DIODE_PIN, STEPPER_RUN_DIODE_ON);
+          #endif
             
           Timer1.setPeriod(computeTimerInterval(p->speed));
           Timer1.start();
@@ -171,6 +184,10 @@ void MotorControllerClass::onEvent(Event event, void* param)
           
           DBGLN(F("ROTATE STEPPER with rotationSettings!!!"));
           rotate();
+          
+          #ifdef USE_STEPPER_RUN_DIODE
+            digitalWrite(STEPPER_RUN_DIODE_PIN, STEPPER_RUN_DIODE_ON);
+          #endif
           
           Timer1.setPeriod(computeTimerInterval(rotationSettings.speed));
           Timer1.start();
@@ -200,7 +217,12 @@ void MotorControllerClass::stepperDone()
     
     DBGLN(F("STEPPER DONE, stop it, stop Timer1."));
 
-    Events.raise(this,StepperWorkDone,NULL);          
+    Events.raise(this,StepperWorkDone,NULL);  
+
+  #ifdef USE_STEPPER_RUN_DIODE
+    digitalWrite(STEPPER_RUN_DIODE_PIN, !STEPPER_RUN_DIODE_ON);
+  #endif
+            
 }
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 void MotorControllerClass::update()

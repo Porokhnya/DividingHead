@@ -68,6 +68,9 @@ class SettingsClass
     uint16_t getNumOfDivisions();
     void setNumOfDivisions(uint16_t value);
 
+    uint16_t getDegrees();
+    void setDegrees(uint16_t value);
+
   private:
 
     uint8_t read8(uint16_t address, uint8_t defaultVal);

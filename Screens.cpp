@@ -172,7 +172,8 @@ void MainScreen::onEvent(Event event, void* param)
         {
           case DIVIDE_DEGREE_BUTTON:
           {
-            DBGLN(F("Divide by degrees screen!"));     
+            DBGLN(F("Switch to divide by degrees screen!"));
+            Screen.switchToScreen(DivideByDegrees);     
           }
           break;
 
@@ -2218,13 +2219,19 @@ void ReductionScreen::drawReductions(HalDC* hal, int top)
   } // if(wantRedrawReductionGear)
 }
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-// DivideByPartsScreen
+// DivideScreen
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-DivideByPartsScreen* DivideByParts = NULL;        
+DivideScreen* DivideByParts = NULL;
+DivideScreen* DivideByDegrees = NULL;        
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-DivideByPartsScreen::DivideByPartsScreen() : AbstractHALScreen()
+DivideScreen::DivideScreen(DivideType t) : AbstractHALScreen()
 {
-  DivideByParts = this;
+  workMode = t;
+  
+  if(workMode == dtParts)
+    DivideByParts = this;
+  else
+    DivideByDegrees = this;
   
   lastNumOfDivisionsLength = 0;
   lastCurrentPositionLength = 0;
@@ -2241,26 +2248,34 @@ DivideByPartsScreen::DivideByPartsScreen() : AbstractHALScreen()
   isCWRotation = true;
 }
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-DivideByPartsScreen::~DivideByPartsScreen()
+DivideScreen::~DivideScreen()
 {
 }
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-void DivideByPartsScreen::validate()
+void DivideScreen::validate()
 {
   uint8_t prevNumOfDivisions = totalNumOfDivisions;
 
   if(totalNumOfDivisions < 1)
     totalNumOfDivisions = 1;
 
+  if(workMode == dtParts)
+  {
   if(totalNumOfDivisions > 999)
     totalNumOfDivisions = 999;
+  }
+  else
+  {
+    if(totalNumOfDivisions > 359)
+      totalNumOfDivisions = 359;
+  }
 
   if(prevNumOfDivisions != totalNumOfDivisions)
     wantRedrawNumOfDivisions = true;
  
 }
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-void DivideByPartsScreen::onDeactivate()
+void DivideScreen::onDeactivate()
 {
   // станем неактивными
   validate();
@@ -2269,14 +2284,21 @@ void DivideByPartsScreen::onDeactivate()
   wantRedrawCurrentPosition = false;
   isCWRotation = true;
   
-  Settings.setNumOfDivisions(totalNumOfDivisions);
+  if(workMode == dtParts)
+    Settings.setNumOfDivisions(totalNumOfDivisions);
+  else
+    Settings.setDegrees(totalNumOfDivisions);
+    
 
 }
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-void DivideByPartsScreen::onActivate()
+void DivideScreen::onActivate()
 {
   // мы активизируемся  
-  totalNumOfDivisions = Settings.getNumOfDivisions();
+  if(workMode == dtParts)
+    totalNumOfDivisions = Settings.getNumOfDivisions();
+  else
+    totalNumOfDivisions = Settings.getDegrees();
   
   bool w = !MotorController.isOnIdle();
   if(w != isInWork)
@@ -2290,7 +2312,7 @@ void DivideByPartsScreen::onActivate()
   
 }
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-void DivideByPartsScreen::onEvent(Event event, void* param)
+void DivideScreen::onEvent(Event event, void* param)
 {
   if(!isActive())
     return;  
@@ -2315,17 +2337,35 @@ void DivideByPartsScreen::onEvent(Event event, void* param)
             // остановились нормально, надо изменить значение текущего положения
             if(isCWRotation) // двигались по часовой
             {
-              currentPosition++;
-
-              if(currentPosition == totalNumOfDivisions)
-                  currentPosition = 0;                              
+              if(workMode == dtParts)
+              {
+                currentPosition++;
+  
+                if(currentPosition == totalNumOfDivisions)
+                    currentPosition = 0;                              
+              }
+              else
+              {
+                currentPosition += totalNumOfDivisions;
+                if(currentPosition > 360)
+                  currentPosition -= 360;
+              }
             }
             else // двигались против часовой
             {
+              if(workMode == dtParts)
+              {
                 if(currentPosition == 0)
                   currentPosition = totalNumOfDivisions - 1;
                 else
                   currentPosition--;
+              }
+              else
+              {
+                currentPosition -= totalNumOfDivisions;
+                if(currentPosition < 0)
+                  currentPosition = 360 + currentPosition;
+              }
             }
           
             wantRedrawCurrentPosition = true;
@@ -2438,7 +2478,10 @@ void DivideByPartsScreen::onEvent(Event event, void* param)
           {
             // режим простоя, запускаем шагание
             validate();
-            startSteps(p->button == LEFT_BUTTON);
+            if(workMode == dtParts)
+              startSteps(p->button == LEFT_BUTTON);
+            else
+              startSteps(false); // в режиме деления по градусам движемся только в одну сторону
           }
           
         } // if(p->state & BUTTON_CLICKED)   
@@ -2450,11 +2493,11 @@ void DivideByPartsScreen::onEvent(Event event, void* param)
     } // switch    
 }
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-void DivideByPartsScreen::doSetup(HalDC* hal)
+void DivideScreen::doSetup(HalDC* hal)
 {
 }
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-void DivideByPartsScreen::doUpdate(HalDC* hal)
+void DivideScreen::doUpdate(HalDC* hal)
 {
   if(!isActive())
     return;
@@ -2483,7 +2526,7 @@ void DivideByPartsScreen::doUpdate(HalDC* hal)
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-void DivideByPartsScreen::doDraw(HalDC* hal)
+void DivideScreen::doDraw(HalDC* hal)
 {
    hal->clearScreen();
 
@@ -2493,7 +2536,7 @@ void DivideByPartsScreen::doDraw(HalDC* hal)
    hal->updateDisplay();
 }
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-void DivideByPartsScreen::drawGUI(HalDC* hal)
+void DivideScreen::drawGUI(HalDC* hal)
 {
   int screenWidth = hal->getScreenWidth();
    
@@ -2506,16 +2549,29 @@ void DivideByPartsScreen::drawGUI(HalDC* hal)
   int top = 20;
   int vSpacing = 10;
    
-   String strToDraw = TXT_PARTS_SCREEN_CAPTION;
+   String strToDraw;
+   if(workMode == dtParts)
+    strToDraw = TXT_PARTS_SCREEN_CAPTION;
+   else
+    strToDraw = TXT_DEGREES_SCREEN_CAPTION;
+   
    int len = hal->print(strToDraw.c_str(),0,0,0,true);
    int left = (screenWidth - fontWidth*len)/2;
    hal->print(strToDraw.c_str(),left,top);
 
 
    hal->setColor(VGA_RED);
-   strToDraw = TXT_PARTS_SCREEN_PARTS_LABEL;
+   if(workMode == dtParts)
+    strToDraw = TXT_PARTS_SCREEN_PARTS_LABEL;
+   else
+    strToDraw = TXT_DEGREES_SCREEN_PARTS_LABEL;
    hal->print(strToDraw.c_str(),40,80-fontHeight-6);
-   strToDraw = TXT_PARTS_SCREEN_CUR_PART_LABEL;
+   
+   if(workMode == dtParts)
+    strToDraw = TXT_PARTS_SCREEN_CUR_PART_LABEL;
+   else
+    strToDraw = TXT_DEGREES_SCREEN_CUR_PART_LABEL;
+
    len = hal->print(strToDraw.c_str(),0,0,0,true);
    hal->print(strToDraw.c_str(),screenWidth - 40 - len*fontWidth,80-fontHeight-6);
 
@@ -2530,13 +2586,21 @@ void DivideByPartsScreen::drawGUI(HalDC* hal)
    hal->setBackColor(SCREEN_BACK_COLOR);
    hal->setColor(SCREEN_TEXT_COLOR);  
 
-   strToDraw = TXT_PARTS_SCREEN_HINT_1;
+   if(workMode == dtParts)
+    strToDraw = TXT_PARTS_SCREEN_HINT_1;
+   else
+    strToDraw = TXT_DEGREES_SCREEN_HINT_1;
+   
    len = hal->print(strToDraw.c_str(),0,0,0,true);
    left = (screenWidth - fontWidth*len)/2;
    hal->print(strToDraw.c_str(),left,top);
    top += fontHeight + vSpacing;
 
-   strToDraw = TXT_PARTS_SCREEN_HINT_2;
+   if(workMode == dtParts)
+    strToDraw = TXT_PARTS_SCREEN_HINT_2;
+   else
+    strToDraw = TXT_DEGREES_SCREEN_HINT_2;
+   
    len = hal->print(strToDraw.c_str(),0,0,0,true);
    left = (screenWidth - fontWidth*len)/2;
    hal->print(strToDraw.c_str(),left,top);
@@ -2546,7 +2610,7 @@ void DivideByPartsScreen::drawGUI(HalDC* hal)
    
 }
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-int DivideByPartsScreen::drawCurrentPosition(HalDC* hal, int top)
+int DivideScreen::drawCurrentPosition(HalDC* hal, int top)
 {
    int screenWidth = hal->getScreenWidth();
    hal->setFont(SevenSeg_XXXL_Num);
@@ -2555,7 +2619,7 @@ int DivideByPartsScreen::drawCurrentPosition(HalDC* hal, int top)
 
     
    String strToDraw;
-   strToDraw = (currentPosition+1);
+   strToDraw = currentPosition;
    int len = hal->print(strToDraw.c_str(),0,0,0,true);
    int left = (screenWidth - fontWidth*len) - 40;
 
@@ -2578,7 +2642,7 @@ int DivideByPartsScreen::drawCurrentPosition(HalDC* hal, int top)
    return (top + fontHeight + 10);
 }
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-void DivideByPartsScreen::drawNumOfDivisions(HalDC* hal, int top)
+void DivideScreen::drawNumOfDivisions(HalDC* hal, int top)
 {
    hal->setFont(SevenSeg_XXXL_Num);
    int fontWidth = hal->getFontWidth(SevenSeg_XXXL_Num);
@@ -2608,12 +2672,23 @@ void DivideByPartsScreen::drawNumOfDivisions(HalDC* hal, int top)
 
 }
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-void DivideByPartsScreen::startSteps(bool ccw)
+void DivideScreen::startSteps(bool ccw)
 {
-  if(Settings.getNumOfDivisions() != uint16_t(totalNumOfDivisions))
+  if(workMode == dtParts)
   {
-    validate();
-    Settings.setNumOfDivisions(totalNumOfDivisions);
+    if(Settings.getNumOfDivisions() != uint16_t(totalNumOfDivisions))
+    {
+      validate();
+      Settings.setNumOfDivisions(totalNumOfDivisions);
+    }
+  }
+  else
+  {
+    if(Settings.getDegrees() != uint16_t(totalNumOfDivisions))
+    {
+      validate();
+      Settings.setDegrees(totalNumOfDivisions);
+    }    
   }
   
   isInWork = true;
@@ -2621,7 +2696,14 @@ void DivideByPartsScreen::startSteps(bool ccw)
 
   int32_t stepsComputed = 0;
   float stepsPerRevolution = MotorController.getStepsPerRevolution();
-  float stepsPerDivision = stepsPerRevolution / totalNumOfDivisions;
+  float stepsPerDivision;
+  
+  if(workMode == dtParts)
+    stepsPerDivision = stepsPerRevolution / totalNumOfDivisions;
+  else
+  {
+    stepsPerDivision = (stepsPerRevolution*totalNumOfDivisions)/360;
+  }
 
   DBG(F("Steps per REV: "));
   DBGLN(stepsPerRevolution);
@@ -2631,26 +2713,30 @@ void DivideByPartsScreen::startSteps(bool ccw)
 
   if(!ccw) // движемся по часовой
   {
-        
-    int currentStepsCount = currentPosition * stepsPerDivision;
-    int nextStepsCount = (currentPosition + 1.00)  * stepsPerDivision;
+      int thisPosition = workMode == dtParts ? currentPosition : currentPosition/totalNumOfDivisions;
     
-    stepsComputed = (nextStepsCount - currentStepsCount);
+      int currentStepsCount = thisPosition * stepsPerDivision;
+      int nextStepsCount = (thisPosition + 1.00)  * stepsPerDivision;
+      
+      stepsComputed = (nextStepsCount - currentStepsCount);
     
   }
   else // движемся против часовой
   {
-      if(currentPosition == 0)
+    int thisPosition = workMode == dtParts ? currentPosition : currentPosition/totalNumOfDivisions;
+    int thisNumOfDivisions = workMode == dtParts ? totalNumOfDivisions : 360/totalNumOfDivisions;
+    
+      if(thisPosition == 0)
       {
         int currentStepsCount = stepsPerRevolution;
-        int nextStepsCount = stepsPerDivision * (totalNumOfDivisions - 1.00);
+        int nextStepsCount = stepsPerDivision * (thisNumOfDivisions - 1.00);
         
         stepsComputed = (currentStepsCount - nextStepsCount);        
       }
       else
       {
-        int currentStepsCount = currentPosition * stepsPerDivision;
-        int nextStepsCount = (currentPosition - 1)  * stepsPerDivision;
+        int currentStepsCount = thisPosition * stepsPerDivision;
+        int nextStepsCount = (thisPosition - 1)  * stepsPerDivision;
         
         stepsComputed = (currentStepsCount - nextStepsCount);
         
@@ -2685,7 +2771,7 @@ void DivideByPartsScreen::startSteps(bool ccw)
 
 }
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-void DivideByPartsScreen::stopSteps(bool ccw)
+void DivideScreen::stopSteps(bool ccw)
 {
   if(!isInWork)
     return;

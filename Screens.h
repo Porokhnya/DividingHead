@@ -333,13 +333,20 @@ private:
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 extern StepsScreen* Steps;
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-class DivideByPartsScreen : public AbstractHALScreen
+typedef enum
+{
+  dtParts,
+  dtDegrees
+  
+} DivideType;
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+class DivideScreen : public AbstractHALScreen
 {
   public:
 
-  static AbstractHALScreen* create()
+  static AbstractHALScreen* create(DivideType t)
   {
-    return new DivideByPartsScreen();
+    return new DivideScreen(t);
   }
   
    virtual void onActivate();
@@ -355,8 +362,10 @@ protected:
     virtual void doDraw(HalDC* hal);
 
 private:
-    DivideByPartsScreen();
-    ~DivideByPartsScreen();
+    DivideScreen(DivideType t);
+    ~DivideScreen();
+
+     DivideType workMode;
 
      int16_t totalNumOfDivisions;
      int16_t currentPosition;
@@ -382,6 +391,7 @@ private:
   
 };
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-extern DivideByPartsScreen* DivideByParts;
+extern DivideScreen* DivideByParts;
+extern DivideScreen* DivideByDegrees;
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 

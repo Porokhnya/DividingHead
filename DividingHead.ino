@@ -29,6 +29,8 @@
     Для смены фокуса ввода - клик кнопкой энкодера. В описываемом случае кнопка "< НАЗАД" на экране - также служит полем ввода, и клик на ней 
     осуществляется не по клику на энкодере - а вращением энкодера в любую сторону.
 
+  * В режиме деления по градусам - в текущей редакции прошивки мотор всегда шагает в одну сторону !!!
+
  
  
  */
@@ -165,8 +167,12 @@ void setup()
   DBGLN(F("Steps screen added.")); 
 
   DBGLN(F("Add divide by parts screen...")); 
-  Screen.addScreen(DivideByPartsScreen::create()); // добавляем экран деления по частям
+  Screen.addScreen(DivideScreen::create(dtParts)); // добавляем экран деления по частям
   DBGLN(F("Divide by parts screen added.")); 
+
+  DBGLN(F("Add divide by degrees screen...")); 
+  Screen.addScreen(DivideScreen::create(dtDegrees)); // добавляем экран деления по градусам
+  DBGLN(F("Divide by degrees screen added.")); 
 
   DBGLN(F("Add settings screen...")); 
   Screen.addScreen(TuneScreen::create()); // добавляем экран настроек

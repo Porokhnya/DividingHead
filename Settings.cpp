@@ -166,4 +166,14 @@ void SettingsClass::setNumOfDivisions(uint16_t value)
   write16(NUMDIVS_STORE_ADDRESS, value);
 }
 //--------------------------------------------------------------------------------------------------------------------------------
+uint16_t SettingsClass::getDegrees()
+{
+  return read16(DEGREES_STORE_ADDRESS,DEGREES_DEFAULT_VAL);
+}
+//--------------------------------------------------------------------------------------------------------------------------------
+void SettingsClass::setDegrees(uint16_t value)
+{
+  write16(DEGREES_STORE_ADDRESS, value);
+}
+//--------------------------------------------------------------------------------------------------------------------------------
 

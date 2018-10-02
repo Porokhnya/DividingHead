@@ -2578,7 +2578,10 @@ void DivideScreen::drawGUI(HalDC* hal)
    drawNumOfDivisions(hal,80);
    top =  drawCurrentPosition(hal,80);
    
-   top += 20;
+   if(workMode == dtParts)
+    top += 20;
+   else
+    top += 4;
 
    hal->setFont(SCREEN_BIG_FONT);
    fontWidth = hal->getFontWidth(SCREEN_BIG_FONT);
@@ -2604,6 +2607,20 @@ void DivideScreen::drawGUI(HalDC* hal)
    len = hal->print(strToDraw.c_str(),0,0,0,true);
    left = (screenWidth - fontWidth*len)/2;
    hal->print(strToDraw.c_str(),left,top);
+   top += fontHeight + vSpacing;
+   
+   if(workMode == dtParts)
+   {
+   }
+   else
+   {
+      strToDraw = TXT_DEGREES_SCREEN_HINT_3;    
+      len = hal->print(strToDraw.c_str(),0,0,0,true);
+      left = (screenWidth - fontWidth*len)/2;
+      hal->print(strToDraw.c_str(),left,top);
+      top += fontHeight + vSpacing;    
+   }
+   
 
    drawBackButton(hal,true);
    drawStepperStatus(hal,isInWork);

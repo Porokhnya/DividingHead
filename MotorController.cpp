@@ -268,7 +268,7 @@ StepperDriver::StepperDriver(uint8_t pinStep, uint8_t pinDir, uint8_t pinEn)
   
   pinMode(stepPin, OUTPUT); digitalWrite(stepPin, LOW);
   pinMode(dirPin, OUTPUT); digitalWrite(dirPin, LOW);
-  pinMode(enPin, OUTPUT); digitalWrite(enPin, HIGH);
+  pinMode(enPin, OUTPUT); digitalWrite(enPin, !EN_PIN_ON_LEVEL);
   
   remainingSteps = 0;
   holdOnStop = true;
@@ -299,8 +299,8 @@ void  StepperDriver::update()
   }
   else 
   {
-    if ( !holdOnStop ) 
-      digitalWrite(enPin, HIGH);    
+    if ( !holdOnStop ) // если нет режима удержания - снимаем ток с обмоток
+      digitalWrite(enPin, !EN_PIN_ON_LEVEL);    
   }          
 }
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -310,9 +310,9 @@ void  StepperDriver::step(int32_t steps)
 
   // блокировка
   if ( (steps == 0) && !holdOnStop ) 
-    digitalWrite(enPin, HIGH);
+    digitalWrite(enPin, !EN_PIN_ON_LEVEL);
   else 
-    digitalWrite(enPin, LOW);
+    digitalWrite(enPin, EN_PIN_ON_LEVEL);
 
   // направление вращения    
   if ( steps < 0 ) 

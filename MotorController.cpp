@@ -18,7 +18,9 @@ MotorControllerClass::MotorControllerClass()
   remainingSteps = 0;
 
   driver = new StepperDriver(STEP_PIN, DIR_PIN, EN_PIN);
+  #ifdef HOLD_ON_STOP
   driver->setHoldOnStop(true); // удерживаем ток на обмотках после остановки
+  #endif
 }
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 void MotorControllerClass::init()
@@ -271,7 +273,7 @@ StepperDriver::StepperDriver(uint8_t pinStep, uint8_t pinDir, uint8_t pinEn)
   pinMode(enPin, OUTPUT); digitalWrite(enPin, !EN_PIN_ON_LEVEL);
   
   remainingSteps = 0;
-  holdOnStop = true;
+  holdOnStop = false;
 }
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 bool StepperDriver::isOnIdle()

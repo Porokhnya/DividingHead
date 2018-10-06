@@ -135,6 +135,55 @@ void MainScreen::onEvent(Event event, void* param)
 
       case ButtonStateChanged: // изменилось состояние кнопки
       {
+        Screen.notifyAction(this); // говорим, что мы отработали чего-то, т.е. на экране происходит действия.
+        ButtonEventParam* p = (ButtonEventParam*) param;
+        
+        switch(p->button)
+        {
+          case LEFT_BUTTON:
+          {
+           if(p->state & BUTTON_CLICKED)
+            {
+              int requested = lastActiveButton;
+              requested--;
+              if(requested < 0)
+                requested = buttonList.size()-1;
+
+                setButtonInactive(buttons,lastActiveButton);
+      
+                buttons->drawButton(lastActiveButton);
+      
+                lastActiveButton = requested;
+                setButtonActive(buttons,lastActiveButton);
+                  
+                buttons->drawButton(lastActiveButton);
+            }
+          }
+          break;
+
+          case RIGHT_BUTTON:
+          {
+           if(p->state & BUTTON_CLICKED)
+            {
+              int requested = lastActiveButton;
+              requested++;
+              
+              if(size_t(requested) >= buttonList.size())
+                requested = 0;
+
+                setButtonInactive(buttons,lastActiveButton);
+      
+                buttons->drawButton(lastActiveButton);
+      
+                lastActiveButton = requested;
+                setButtonActive(buttons,lastActiveButton);
+                  
+                buttons->drawButton(lastActiveButton);
+            }
+          }
+          break;
+          
+        } // switch
         
       }
       break; // ButtonStateChanged
@@ -343,6 +392,55 @@ void TuneScreen::onEvent(Event event, void* param)
 
       case ButtonStateChanged: // изменилось состояние кнопки
       {
+        Screen.notifyAction(this); // говорим, что мы отработали чего-то, т.е. на экране происходит действия.
+        ButtonEventParam* p = (ButtonEventParam*) param;
+        
+        switch(p->button)
+        {
+          case LEFT_BUTTON:
+          {
+           if(p->state & BUTTON_CLICKED)
+            {
+              int requested = lastActiveButton;
+              requested--;
+              if(requested < 0)
+                requested = buttonList.size()-1;
+
+                setButtonInactive(buttons,lastActiveButton);
+      
+                buttons->drawButton(lastActiveButton);
+      
+                lastActiveButton = requested;
+                setButtonActive(buttons,lastActiveButton);
+                  
+                buttons->drawButton(lastActiveButton);
+            }
+          }
+          break;
+
+          case RIGHT_BUTTON:
+          {
+           if(p->state & BUTTON_CLICKED)
+            {
+              int requested = lastActiveButton;
+              requested++;
+              
+              if(size_t(requested) >= buttonList.size())
+                requested = 0;
+
+                setButtonInactive(buttons,lastActiveButton);
+      
+                buttons->drawButton(lastActiveButton);
+      
+                lastActiveButton = requested;
+                setButtonActive(buttons,lastActiveButton);
+                  
+                buttons->drawButton(lastActiveButton);
+            }
+          }
+          break;
+          
+        } // switch
         
       }
       break; // ButtonStateChanged

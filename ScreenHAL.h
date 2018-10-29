@@ -36,9 +36,42 @@ class HalDC;
   extern FONT_TYPE Various_Symbols_32x32[];    // какой шрифт используем
   extern FONT_TYPE AdditionalLettersFont[];
   extern FONT_TYPE SevenSeg_XXXL_Num[];
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  #define BUTTON_HEIGHT 40
+  #define BUTTON_X_OFFSET 10
+  #define BUTTON_Y_OFFSET 10
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  #ifdef CONTRAST_COLOR_SCHEME
   
-  #define SCREEN_BACK_COLOR VGA_WHITE          // цвет фона
-  #define SCREEN_TEXT_COLOR VGA_BLACK          // цвет шрифта
+    #define SCREEN_BACK_COLOR VGA_BLACK          // цвет фона
+    #define SCREEN_TEXT_COLOR VGA_WHITE          // цвет шрифта
+    #define BUTTON_COLORS VGA_WHITE, VGA_GRAY,VGA_SILVER,VGA_GRAY,VGA_BLACK
+    #define BUTTON_ACTIVE_FONT_COLOR VGA_WHITE
+    #define BUTTON_ACTIVE_BACK_COLOR VGA_BLUE
+    #define BUTTON_INACTIVE_FONT_COLOR VGA_WHITE
+    #define BUTTON_INACTIVE_BACK_COLOR VGA_BLACK
+    #define STEPPER_STATUS_COLOR VGA_YELLOW
+    #define DIGITS_FONT_COLOR VGA_YELLOW
+    #define DIGITS_LABEL_FONT_COLOR VGA_SILVER
+    #define DIGITS_SELECTED_FONT_COLOR VGA_WHITE
+    #define DIGITS_SELECTED_BACK_COLOR VGA_BLUE
+    
+  #else
+    #define SCREEN_BACK_COLOR VGA_WHITE          // цвет фона
+    #define SCREEN_TEXT_COLOR VGA_BLACK          // цвет шрифта  
+    #define BUTTON_COLORS VGA_BLACK, VGA_GRAY,VGA_SILVER,VGA_GRAY,VGA_WHITE
+    #define BUTTON_ACTIVE_FONT_COLOR VGA_WHITE
+    #define BUTTON_ACTIVE_BACK_COLOR VGA_BLUE
+    #define BUTTON_INACTIVE_FONT_COLOR VGA_BLACK
+    #define BUTTON_INACTIVE_BACK_COLOR VGA_WHITE
+    #define STEPPER_STATUS_COLOR VGA_RED
+    #define DIGITS_FONT_COLOR VGA_BLUE
+    #define DIGITS_LABEL_FONT_COLOR VGA_RED
+    #define DIGITS_SELECTED_FONT_COLOR VGA_WHITE
+    #define DIGITS_SELECTED_BACK_COLOR VGA_BLUE
+    
+
+  #endif
   #define SCREEN_SMALL_FONT SmallRusFont       // маленький шрифт
   #define SCREEN_BIG_FONT BigRusFont       // маленький шрифт
   #define SCREEN_SYMBOL_FONT Various_Symbols_16x32  // символьный шрифт

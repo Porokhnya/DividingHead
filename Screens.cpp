@@ -14,7 +14,7 @@ void drawBackButton(HalDC* hal, bool active)
   int left = BUTTON_X_OFFSET;
 
   
-  hal->setColor(active ? VGA_BLUE : VGA_WHITE);
+  hal->setColor(active ? BUTTON_ACTIVE_BACK_COLOR : BUTTON_INACTIVE_BACK_COLOR);
   hal->fillRoundRect(left,top,left + buttonWidth, top + BUTTON_HEIGHT);
 
   if(!active)
@@ -24,8 +24,8 @@ void drawBackButton(HalDC* hal, bool active)
   }
 
   hal->setFont(SCREEN_BIG_FONT);
-  hal->setColor(active ? VGA_WHITE : VGA_BLACK);
-  hal->setBackColor(active ? VGA_BLUE : VGA_WHITE);
+  hal->setColor(active ? BUTTON_ACTIVE_FONT_COLOR : BUTTON_INACTIVE_FONT_COLOR);
+  hal->setBackColor(active ? BUTTON_ACTIVE_BACK_COLOR : BUTTON_INACTIVE_BACK_COLOR);
   
   int fontWidth = hal->getFontWidth(SCREEN_BIG_FONT);
   int fontHeight = hal->getFontHeight(SCREEN_BIG_FONT);
@@ -48,7 +48,7 @@ void drawStepperStatus(HalDC* hal,bool active)
   if(active)
   {
     hal->setBackColor(SCREEN_BACK_COLOR);
-    hal->setColor(VGA_RED);
+    hal->setColor(STEPPER_STATUS_COLOR);
     hal->print("_",screenWidth-fontWidth-offset,offset);
   }
   else
@@ -62,14 +62,14 @@ void drawStepperStatus(HalDC* hal,bool active)
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 void setButtonActive(UTFT_Buttons_Rus* bb, int bID)
 {
-  bb->setButtonBackColor(bID, VGA_BLUE);
-  bb->setButtonFontColor(bID, VGA_WHITE);  
+  bb->setButtonBackColor(bID, BUTTON_ACTIVE_BACK_COLOR);
+  bb->setButtonFontColor(bID, BUTTON_ACTIVE_FONT_COLOR);  
 }
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 void setButtonInactive(UTFT_Buttons_Rus* bb, int bID)
 {
-  bb->setButtonBackColor(bID, VGA_WHITE);
-  bb->setButtonFontColor(bID, VGA_BLACK);  
+  bb->setButtonBackColor(bID, BUTTON_INACTIVE_BACK_COLOR);
+  bb->setButtonFontColor(bID, BUTTON_INACTIVE_FONT_COLOR);
 }
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 // MainScreen
@@ -629,8 +629,8 @@ void SplashScreen::doDraw(HalDC* hal)
    hal->setFont(SCREEN_BIG_FONT);
    int fontWidth = hal->getFontWidth(SCREEN_BIG_FONT);
    int fontHeight = hal->getFontHeight(SCREEN_BIG_FONT);
-   hal->setBackColor(VGA_WHITE);
-   hal->setColor(VGA_RED);
+   hal->setBackColor(SCREEN_BACK_COLOR);
+   hal->setColor(SCREEN_TEXT_COLOR);
 
    int top = splashHeight + 20;
    
@@ -638,7 +638,7 @@ void SplashScreen::doDraw(HalDC* hal)
    int len = hal->print(strToDraw.c_str(),0,0,0,true);
    hal->print(strToDraw.c_str(),(screenWidth - fontWidth*len)/2,top);
 
-    hal->setColor(VGA_BLACK);
+    hal->setColor(SCREEN_TEXT_COLOR);
 
    top += fontHeight + 10;
    strToDraw = F("v. 0.1a");
@@ -655,7 +655,7 @@ void SplashScreen::doDraw(HalDC* hal)
    len = hal->print(strToDraw.c_str(),0,0,0,true);
    hal->print(strToDraw.c_str(),(screenWidth - fontWidth*len)/2,top);
 
-   hal->setColor(VGA_BLUE);
+   hal->setColor(SCREEN_TEXT_COLOR);
    top += fontHeight*2 + 10;
    strToDraw = F("spywarrior@gmail.com");
    len = hal->print(strToDraw.c_str(),0,0,0,true);
@@ -1009,7 +1009,7 @@ int RotationScreen::drawRotationSpeed(HalDC* hal, int top)
 
    lastRotationSpeedLength = len;
    
-   hal->setColor(VGA_BLUE);
+   hal->setColor(DIGITS_FONT_COLOR);
    hal->setBackColor(SCREEN_BACK_COLOR);
    hal->print(strToDraw.c_str(),left,top);   
 
@@ -1222,7 +1222,7 @@ int MotorSetupScreen::drawStepsPerRevolution(HalDC* hal, int top)
 
    lastStepsPerRevolutionLength = len;
    
-   hal->setColor(VGA_BLUE);
+   hal->setColor(DIGITS_FONT_COLOR);
    hal->setBackColor(SCREEN_BACK_COLOR);
    hal->print(strToDraw.c_str(),left,top);   
 
@@ -1438,7 +1438,7 @@ int MicrostepScreen::drawSetting(HalDC* hal, int top)
   String strToDraw;
   strToDraw = '1';
 
-  hal->setColor(VGA_BLUE);
+  hal->setColor(DIGITS_FONT_COLOR);
   hal->setBackColor(SCREEN_BACK_COLOR);
   hal->print(strToDraw.c_str(),left,top);
   left += fontWidth;
@@ -1467,7 +1467,7 @@ int MicrostepScreen::drawSetting(HalDC* hal, int top)
    }
 
    lastSettingLength = len;   
-   hal->setColor(VGA_BLUE);
+   hal->setColor(DIGITS_FONT_COLOR);
    hal->setBackColor(SCREEN_BACK_COLOR);
    hal->print(strToDraw.c_str(),left,top);   
   
@@ -1800,7 +1800,7 @@ void StepsScreen::drawGUI(HalDC* hal)
    hal->print(strToDraw.c_str(),left,top);
 
 
-   hal->setColor(VGA_RED);
+   hal->setColor(DIGITS_LABEL_FONT_COLOR);
    strToDraw = TXT_STEPS_SCREEN_STEPS_LABEL;
    hal->print(strToDraw.c_str(),40,80-fontHeight-6);
    strToDraw = TXT_STEPS_SCREEN_SPEED_LABEL;
@@ -1860,8 +1860,8 @@ int StepsScreen::drawRotationSpeed(HalDC* hal, int top)
 
    lastRotationSpeedLength = len;
    
-   hal->setColor(selectedMenu == 1 ? SCREEN_BACK_COLOR : VGA_BLUE);
-   hal->setBackColor(selectedMenu == 1 ? VGA_BLUE : SCREEN_BACK_COLOR);
+   hal->setColor(selectedMenu == 1 ? DIGITS_SELECTED_FONT_COLOR : DIGITS_FONT_COLOR);
+   hal->setBackColor(selectedMenu == 1 ? DIGITS_SELECTED_BACK_COLOR : SCREEN_BACK_COLOR);
    hal->print(strToDraw.c_str(),left,top);   
 
    return (top + fontHeight + 10);
@@ -1891,8 +1891,8 @@ void StepsScreen::drawSteps(HalDC* hal, int top)
 
    lastStepsLength = len;
    
-   hal->setColor(selectedMenu == 0 ? SCREEN_BACK_COLOR : VGA_BLUE);
-   hal->setBackColor(selectedMenu == 0 ? VGA_BLUE : SCREEN_BACK_COLOR);
+   hal->setColor(selectedMenu == 0 ? DIGITS_SELECTED_FONT_COLOR : DIGITS_FONT_COLOR);
+   hal->setBackColor(selectedMenu == 0 ? DIGITS_SELECTED_BACK_COLOR : SCREEN_BACK_COLOR);
    hal->print(strToDraw.c_str(),left,top);   
 
 }
@@ -2236,7 +2236,7 @@ void ReductionScreen::drawGUI(HalDC* hal)
     top = 80;
   // рисуем слеш по центру экрана
   hal->setFont(AdditionalLettersFont);
-  hal->setColor(VGA_BLUE);
+  hal->setColor(DIGITS_FONT_COLOR);
   fontWidth = hal->getFontWidth(AdditionalLettersFont);
   left = (screenWidth - fontWidth)/2;
   strToDraw = '0'; // рисуем слеш '/'
@@ -2283,8 +2283,8 @@ void ReductionScreen::drawReductions(HalDC* hal, int top)
 
    lastReductionMotorLength = len;
    
-   hal->setColor(selectedMenu == 0 ? SCREEN_BACK_COLOR : VGA_BLUE);
-   hal->setBackColor(selectedMenu == 0 ? VGA_BLUE : SCREEN_BACK_COLOR);
+   hal->setColor(selectedMenu == 0 ? DIGITS_SELECTED_FONT_COLOR : DIGITS_FONT_COLOR);
+   hal->setBackColor(selectedMenu == 0 ? DIGITS_SELECTED_BACK_COLOR : SCREEN_BACK_COLOR);
    hal->print(strToDraw.c_str(),left,top);          
     
   } // if(wantRedrawReductionMotor)
@@ -2310,8 +2310,8 @@ void ReductionScreen::drawReductions(HalDC* hal, int top)
 
    lastReductionGearLength = len;    
 
-    hal->setColor(selectedMenu == 1 ? SCREEN_BACK_COLOR : VGA_BLUE);
-    hal->setBackColor(selectedMenu == 1 ? VGA_BLUE : SCREEN_BACK_COLOR);
+    hal->setColor(selectedMenu == 1 ? DIGITS_SELECTED_FONT_COLOR : DIGITS_FONT_COLOR);
+    hal->setBackColor(selectedMenu == 1 ? DIGITS_SELECTED_BACK_COLOR : SCREEN_BACK_COLOR);
     hal->print(strToDraw.c_str(),left,top);          
     
   } // if(wantRedrawReductionGear)
@@ -2658,7 +2658,7 @@ void DivideScreen::drawGUI(HalDC* hal)
    hal->print(strToDraw.c_str(),left,top);
 
 
-   hal->setColor(VGA_RED);
+   hal->setColor(DIGITS_LABEL_FONT_COLOR);
    if(workMode == dtParts)
     strToDraw = TXT_PARTS_SCREEN_PARTS_LABEL;
    else
@@ -2750,7 +2750,7 @@ int DivideScreen::drawCurrentPosition(HalDC* hal, int top)
 
    lastCurrentPositionLength = len;
    
-   hal->setColor(VGA_BLUE);
+   hal->setColor(DIGITS_FONT_COLOR);
    hal->setBackColor(SCREEN_BACK_COLOR);
    hal->print(strToDraw.c_str(),left,top);   
 
@@ -2781,7 +2781,7 @@ void DivideScreen::drawNumOfDivisions(HalDC* hal, int top)
 
    lastNumOfDivisionsLength = len;
    
-   hal->setColor(VGA_BLUE);
+   hal->setColor(DIGITS_FONT_COLOR);
    hal->setBackColor(SCREEN_BACK_COLOR);
    hal->print(strToDraw.c_str(),left,top);   
 

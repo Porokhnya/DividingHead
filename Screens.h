@@ -11,7 +11,8 @@
 #define DIVIDE_PARTS_BUTTON 1
 #define STEP_BUTTON 2
 #define ROTATION_BUTTON 3
-#define SETTINGS_BUTTON 4
+#define ROTATION_CONTINUOUS_BUTTON 4
+#define SETTINGS_BUTTON 5
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 class MainScreen : public AbstractHALScreen
 {
@@ -127,9 +128,9 @@ class RotationScreen : public AbstractHALScreen
 {
   public:
 
-  static AbstractHALScreen* create()
+  static AbstractHALScreen* create(bool continuous)
   {
-    return new RotationScreen();
+    return new RotationScreen(continuous);
   }
   
    virtual void onActivate();
@@ -145,7 +146,7 @@ protected:
     virtual void doDraw(HalDC* hal);
 
 private:
-    RotationScreen();
+    RotationScreen(bool continuous);
     ~RotationScreen();
 
     void validate();
@@ -160,12 +161,14 @@ private:
      void stopRotate(bool ccw);
 
      bool wantDrawStepperStatus;
+     bool continuous;
      
      int drawRotationSpeed(HalDC* hal, int top);
   
 };
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 extern RotationScreen* Rotation;
+extern RotationScreen* RotationContinuous;
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 class MotorSetupScreen : public AbstractHALScreen
 {

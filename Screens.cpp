@@ -247,6 +247,13 @@ void MainScreen::onEvent(Event event, void* param)
           }
           break;
 
+          case ROTATION_CONTINUOUS_BUTTON:
+          {
+            DBGLN(F("Switch to rotate continuous screen!"));
+            Screen.switchToScreen(RotationContinuous);                 
+          }
+          break;
+
           case SETTINGS_BUTTON:
           {
             DBGLN(F("Switch to settings screen!"));
@@ -290,7 +297,10 @@ void MainScreen::doSetup(HalDC* hal)
 
   buttonList.push_back(btn);
 
+  top += BUTTON_HEIGHT + BUTTON_Y_OFFSET;
+  btn = buttons->addButton(BUTTON_X_OFFSET,top,buttonWidth,BUTTON_HEIGHT,TXT_ROTATE_CONTINUOUS_BUTTON);
 
+  buttonList.push_back(btn);
 
 
 
@@ -668,17 +678,23 @@ void SplashScreen::doDraw(HalDC* hal)
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 // RotationScreen
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-RotationScreen* Rotation = NULL;        
+RotationScreen* Rotation = NULL;
+RotationScreen* RotationContinuous = NULL;
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-RotationScreen::RotationScreen() : AbstractHALScreen()
+RotationScreen::RotationScreen(bool c) : AbstractHALScreen()
 {
-  Rotation = this;
+  if(!c)
+    Rotation = this;
+  else
+    RotationContinuous = this;
+    
   wantRedrawRotationSpeed = false;
   lastRotationSpeedLength = 0;
   isInWork = false;
   ccwButtonPressed = false;
   cwButtonPressed = false;
   wantDrawStepperStatus = false;
+  continuous = c;
 
 }
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -852,54 +868,77 @@ void RotationScreen::onEvent(Event event, void* param)
       {
         Screen.notifyAction(this); // говорим, что мы отработали чего-то, т.е. на экране происходит действия.
         ButtonEventParam* p = (ButtonEventParam*) param;
-        
-        switch(p->button)
-        {
-          case LEFT_BUTTON:
-          {
-            if(!cwButtonPressed)
-            {
-                bool isPressedNow = p->state & BUTTON_PRESSED;
-                if(isPressedNow)
-                {
-                 ccwButtonPressed = true;
-                 startRotate(true);
-                }
-                else
-                {              
-                  if(p->state & BUTTON_CLICKED)
-                  {
-                   ccwButtonPressed = false;
-                   stopRotate(true);
-                  }
-                }
-            }
-          }
-          break;
 
-          case RIGHT_BUTTON:
-          {
-            if(!ccwButtonPressed)
-            {
-                bool isPressedNow = p->state & BUTTON_PRESSED;
-                if(isPressedNow)
+        if(!continuous)
+        {        
+                switch(p->button)
                 {
-                 cwButtonPressed = true;
-                 startRotate(false);
-                }
-                else
-                {              
-                  if(p->state & BUTTON_CLICKED)
+                  case LEFT_BUTTON:
                   {
-                   cwButtonPressed = false;
-                   stopRotate(false);
+                    if(!cwButtonPressed)
+                    {
+                        bool isPressedNow = p->state & BUTTON_PRESSED;
+                        if(isPressedNow)
+                        {
+                         ccwButtonPressed = true;
+                         startRotate(true);
+                        }
+                        else
+                        {              
+                          if(p->state & BUTTON_CLICKED)
+                          {
+                           ccwButtonPressed = false;
+                           stopRotate(true);
+                          }
+                        }
+                    }
                   }
+                  break;
+        
+                  case RIGHT_BUTTON:
+                  {
+                    if(!ccwButtonPressed)
+                    {
+                        bool isPressedNow = p->state & BUTTON_PRESSED;
+                        if(isPressedNow)
+                        {
+                         cwButtonPressed = true;
+                         startRotate(false);
+                        }
+                        else
+                        {              
+                          if(p->state & BUTTON_CLICKED)
+                          {
+                           cwButtonPressed = false;
+                           stopRotate(false);
+                          }
+                        }
+                    }
+                  }
+                  break;
+                  
+                } // switch
+        } // if
+        else
+        {
+              if(p->state & BUTTON_CLICKED)
+              {
+                // кнопка кликнута
+                if(isInWork)
+                {
+                  // работаем ещё, надо остановить мотор
+                  DBGLN(F("Stop motor prematurely!!!"));
+                  stopRotate(p->button == LEFT_BUTTON);
                 }
-            }
-          }
-          break;
-          
-        } // switch
+                else              
+                {
+                  // режим простоя, запускаем шагание
+                  startRotate(p->button == LEFT_BUTTON);
+                }
+                
+              } // if(p->state & BUTTON_CLICKED)   
+        
+        } // else
       }
       break; // ButtonStateChanged
       
@@ -956,7 +995,12 @@ void RotationScreen::drawGUI(HalDC* hal)
   int top = 20;
   int vSpacing = 10;
    
-   String strToDraw = TXT_ROTATION_SCREEN_CAPTION;
+   String strToDraw;
+   if(!continuous)
+    strToDraw = TXT_ROTATION_SCREEN_CAPTION;
+   else
+    strToDraw = TXT_ROTATION_CONTINUOUS_SCREEN_CAPTION;
+   
    int len = hal->print(strToDraw.c_str(),0,0,0,true);
    int left = (screenWidth - fontWidth*len)/2;
    hal->print(strToDraw.c_str(),left,top);
@@ -971,16 +1015,28 @@ void RotationScreen::drawGUI(HalDC* hal)
    hal->setColor(SCREEN_TEXT_COLOR);  
 
 
-   strToDraw = TXT_ROTATION_SCREEN_HINT_1;
-   len = hal->print(strToDraw.c_str(),0,0,0,true);
-   left = (screenWidth - fontWidth*len)/2;
-   hal->print(strToDraw.c_str(),left,top);
-   top += fontHeight + vSpacing;
-
-   strToDraw = TXT_ROTATION_SCREEN_HINT_2;
-   len = hal->print(strToDraw.c_str(),0,0,0,true);
-   left = (screenWidth - fontWidth*len)/2;
-   hal->print(strToDraw.c_str(),left,top);
+  #ifdef DISPLAY_SCREEN_HINTS
+  
+     if(!continuous)
+      strToDraw = TXT_ROTATION_SCREEN_HINT_1;
+     else
+      strToDraw = TXT_ROTATION_CONTINUOUS_SCREEN_HINT_1;
+      
+     len = hal->print(strToDraw.c_str(),0,0,0,true);
+     left = (screenWidth - fontWidth*len)/2;
+     hal->print(strToDraw.c_str(),left,top);
+     top += fontHeight + vSpacing;
+  
+     if(!continuous)
+      strToDraw = TXT_ROTATION_SCREEN_HINT_2;
+     else
+      strToDraw = TXT_ROTATION_CONTINUOUS_SCREEN_HINT_2;
+      
+     len = hal->print(strToDraw.c_str(),0,0,0,true);
+     left = (screenWidth - fontWidth*len)/2;
+     hal->print(strToDraw.c_str(),left,top);
+     
+   #endif // #ifdef DISPLAY_SCREEN_HINTS
 
 
    drawBackButton(hal,true);
@@ -1817,17 +1873,20 @@ void StepsScreen::drawGUI(HalDC* hal)
    hal->setBackColor(SCREEN_BACK_COLOR);
    hal->setColor(SCREEN_TEXT_COLOR);  
 
-
-   strToDraw = TXT_STEPS_SCREEN_HINT_1;
-   len = hal->print(strToDraw.c_str(),0,0,0,true);
-   left = (screenWidth - fontWidth*len)/2;
-   hal->print(strToDraw.c_str(),left,top);
-   top += fontHeight + vSpacing;
-
-   strToDraw = TXT_STEPS_SCREEN_HINT_2;
-   len = hal->print(strToDraw.c_str(),0,0,0,true);
-   left = (screenWidth - fontWidth*len)/2;
-   hal->print(strToDraw.c_str(),left,top);
+   #ifdef DISPLAY_SCREEN_HINTS
+   
+     strToDraw = TXT_STEPS_SCREEN_HINT_1;
+     len = hal->print(strToDraw.c_str(),0,0,0,true);
+     left = (screenWidth - fontWidth*len)/2;
+     hal->print(strToDraw.c_str(),left,top);
+     top += fontHeight + vSpacing;
+  
+     strToDraw = TXT_STEPS_SCREEN_HINT_2;
+     len = hal->print(strToDraw.c_str(),0,0,0,true);
+     left = (screenWidth - fontWidth*len)/2;
+     hal->print(strToDraw.c_str(),left,top);
+     
+   #endif // #ifdef DISPLAY_SCREEN_HINTS
 
 
    drawBackButton(hal,selectedMenu == 2);
@@ -2687,38 +2746,41 @@ void DivideScreen::drawGUI(HalDC* hal)
    hal->setBackColor(SCREEN_BACK_COLOR);
    hal->setColor(SCREEN_TEXT_COLOR);  
 
-   if(workMode == dtParts)
-    strToDraw = TXT_PARTS_SCREEN_HINT_1;
-   else
-    strToDraw = TXT_DEGREES_SCREEN_HINT_1;
-   
-   len = hal->print(strToDraw.c_str(),0,0,0,true);
-   left = (screenWidth - fontWidth*len)/2;
-   hal->print(strToDraw.c_str(),left,top);
-   top += fontHeight + vSpacing;
+    #ifdef DISPLAY_SCREEN_HINTS
+    
+       if(workMode == dtParts)
+        strToDraw = TXT_PARTS_SCREEN_HINT_1;
+       else
+        strToDraw = TXT_DEGREES_SCREEN_HINT_1;
+       
+       len = hal->print(strToDraw.c_str(),0,0,0,true);
+       left = (screenWidth - fontWidth*len)/2;
+       hal->print(strToDraw.c_str(),left,top);
+       top += fontHeight + vSpacing;
+    
+       if(workMode == dtParts)
+        strToDraw = TXT_PARTS_SCREEN_HINT_2;
+       else
+        strToDraw = TXT_DEGREES_SCREEN_HINT_2;
+       
+       len = hal->print(strToDraw.c_str(),0,0,0,true);
+       left = (screenWidth - fontWidth*len)/2;
+       hal->print(strToDraw.c_str(),left,top);
+       top += fontHeight + vSpacing;
+       
+       if(workMode == dtParts)
+       {
+       }
+       else
+       {
+          strToDraw = TXT_DEGREES_SCREEN_HINT_3;    
+          len = hal->print(strToDraw.c_str(),0,0,0,true);
+          left = (screenWidth - fontWidth*len)/2;
+          hal->print(strToDraw.c_str(),left,top);
+          top += fontHeight + vSpacing;    
+       }
 
-   if(workMode == dtParts)
-    strToDraw = TXT_PARTS_SCREEN_HINT_2;
-   else
-    strToDraw = TXT_DEGREES_SCREEN_HINT_2;
-   
-   len = hal->print(strToDraw.c_str(),0,0,0,true);
-   left = (screenWidth - fontWidth*len)/2;
-   hal->print(strToDraw.c_str(),left,top);
-   top += fontHeight + vSpacing;
-   
-   if(workMode == dtParts)
-   {
-   }
-   else
-   {
-      strToDraw = TXT_DEGREES_SCREEN_HINT_3;    
-      len = hal->print(strToDraw.c_str(),0,0,0,true);
-      left = (screenWidth - fontWidth*len)/2;
-      hal->print(strToDraw.c_str(),left,top);
-      top += fontHeight + vSpacing;    
-   }
-   
+   #endif // #ifdef DISPLAY_SCREEN_HINTS
 
    drawBackButton(hal,true);
    drawStepperStatus(hal,isInWork);

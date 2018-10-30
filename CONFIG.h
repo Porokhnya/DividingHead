@@ -37,6 +37,7 @@
 #define DISPLAY_USED DISPLAY_TFT // под какой дисплей собираем прошивку
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 #define CONTRAST_COLOR_SCHEME // закомментировать, если не нужна контрастная цветовая схема (тёмный фон, белый шрифт)
+#define DISPLAY_SCREEN_HINTS // закомментировать, если не надо отображать подсказки действий на экранах
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 // настройки модели и пинов для TFT
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -159,6 +160,7 @@
 #define TXT_PART_DIVIDE_BUTTON                "ДЕЛЕНИЕ ПО ЧАСТЯМ"
 #define TXT_STEP_BUTTON                       "ШАГАНИЕ"
 #define TXT_ROTATE_BUTTON                     "ВРАЩЕНИЕ"
+#define TXT_ROTATE_CONTINUOUS_BUTTON          "ПОСТОЯННОЕ ВРАЩЕНИЕ"
 #define TXT_SETTINGS_BUTTON                   "НАСТРОЙКИ"
 #define TXT_MOTOR_BUTTON                      "ДВИГАТЕЛЬ"
 #define TXT_MICROSTEP_DIVIDER_BUTTON          "ДЕЛИТЕЛЬ ШАГА"
@@ -168,6 +170,11 @@
 #define TXT_ROTATION_SCREEN_CAPTION           F("СКОРОСТЬ ВРАЩЕНИЯ")
 #define TXT_ROTATION_SCREEN_HINT_1            F("Зажатие < и > - работа.")
 #define TXT_ROTATION_SCREEN_HINT_2            F("Отпускание < и > - стоп.")
+
+// экран постоянного вращения
+#define TXT_ROTATION_CONTINUOUS_SCREEN_CAPTION F("СКОРОСТЬ ВРАЩЕНИЯ")
+#define TXT_ROTATION_CONTINUOUS_SCREEN_HINT_1            F("Клик < и > - работа.")
+#define TXT_ROTATION_CONTINUOUS_SCREEN_HINT_2            F("Повторно < и > - стоп.")
 
 // экран настроек двигателя
 #define TXT_MOTOR_SETUP_SCREEN_CAPTION        F("ШАГОВ НА ОБОРОТ")

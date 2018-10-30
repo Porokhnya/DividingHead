@@ -159,8 +159,12 @@ void setup()
   DBGLN(F("Main screen added.")); 
 
   DBGLN(F("Add rotation screen...")); 
-  Screen.addScreen(RotationScreen::create()); // добавляем экран вращения
+  Screen.addScreen(RotationScreen::create(false)); // добавляем экран вращения
   DBGLN(F("Rotation screen added.")); 
+
+  DBGLN(F("Add continuous rotation screen...")); 
+  Screen.addScreen(RotationScreen::create(true)); // добавляем экран вращения
+  DBGLN(F("Continuous rotation screen added.")); 
 
   DBGLN(F("Add steps screen...")); 
   Screen.addScreen(StepsScreen::create()); // добавляем экран шагания

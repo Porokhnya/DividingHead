@@ -51,7 +51,7 @@ uint32_t screenIdleTimer = 0;
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 #ifdef USE_KEYBOARD
   #include "MPR121.h"
-  bool hasDataFromKeyboard = false;
+  volatile bool hasDataFromKeyboard = false;
   MPR121 keyboard;
   void keyboardInterrupt()
   {
@@ -259,7 +259,9 @@ void loop()
   #ifdef USE_KEYBOARD
   if(hasDataFromKeyboard)
   {
+    noInterrupts();
     hasDataFromKeyboard = false;
+    interrupts();
 
     uint16_t touched = keyboard.touched();
     for (uint8_t i=0; i<12; i++) 

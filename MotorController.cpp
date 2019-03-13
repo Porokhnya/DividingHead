@@ -296,7 +296,7 @@ void  StepperDriver::update()
   {
     // сделать шаг
     digitalWrite(stepPin, HIGH);
-    delayMicroseconds(10);  // 10 мкс
+    delayMicroseconds(STEP_PULSE_WIDTH);  // N мкс
     digitalWrite(stepPin, LOW);        
   }
   else 
